@@ -11,6 +11,8 @@
         tools:ignore="ProtectedPermissions" />
     <!-- Reaches the TV's own ADB on 127.0.0.1:5555 to send HDMI-CEC wake commands. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- HealthDialog shows the TV's address for the phone remote. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- RemoteService: the phone remote page, served while the TV shows anything. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

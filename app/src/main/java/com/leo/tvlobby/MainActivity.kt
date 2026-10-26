@@ -162,6 +162,10 @@ class MainActivity : Activity() {
             detail.visibility = View.GONE
             showMark(getDrawable(R.drawable.icon_settings)!!, 22)
             setOnClickListener { launch(Intent(Settings.ACTION_SETTINGS)) }
+            setOnLongClickListener {
+                HealthDialog(this@MainActivity, controls).show()
+                true
+            }
             (layoutParams as LinearLayout.LayoutParams).marginEnd = 0
         })
     }
