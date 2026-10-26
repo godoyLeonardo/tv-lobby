@@ -20,9 +20,11 @@ if [[ "${1:-}" == "stock" ]]; then
   exit 0
 fi
 
+SIGNING="${TV_LOBBY_SIGNING:-$HOME/.config/tv-lobby/signing.properties}"
+[[ -f "$SIGNING" ]] || { echo "No signing key at $SIGNING (see Signing in the README)." >&2; exit 1; }
 [[ -f local.properties ]] || echo "sdk.dir=${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}" > local.properties
-./gradlew -q assembleDebug
-adb -s "$TV" install -r app/build/outputs/apk/debug/app-debug.apk
+./gradlew -q assembleRelease
+adb -s "$TV" install -r app/build/outputs/apk/release/app-release.apk
 tv pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS
 for p in "${STOCK_HOMES[@]}"; do tv pm disable-user --user 0 "$p" >/dev/null; done
 tv cmd package set-home-activity "$PKG/.MainActivity"

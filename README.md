@@ -26,6 +26,10 @@ The script does more than install the APK:
 
 If a firmware update re-enables them or revokes the permission, the app redoes both by itself through the TV's own ADB, at boot and whenever the lobby starts. That is why `./deploy.sh stock` uninstalls the app rather than only re-enabling them.
 
+## Signing
+
+Release builds are signed with a key kept outside the repo, in `~/.config/tv-lobby/` (`release.keystore` plus `signing.properties` with its path, alias and password; `TV_LOBBY_SIGNING` points elsewhere). Back both files up, for example in a password manager. Android only installs an update signed with the same key. Without them, a new build can only replace the app by uninstalling it, which erases the pinned and hidden apps and the TV's approval of the app's ADB key.
+
 ## Customizing
 
 Edit [`Lobby.kt`](app/src/main/java/com/leo/tvlobby/Lobby.kt):
