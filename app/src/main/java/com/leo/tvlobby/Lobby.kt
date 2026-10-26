@@ -9,7 +9,7 @@ object Lobby {
     val inputs = listOf(
         Input("Switch 2", "com.tcl.tvinput/.TvPassThroughService/HW16", R.drawable.mark_switch, intArrayOf(0xFFB3000E.toInt(), 0xFFFF2A2A.toInt())),
         Input("PS5", "com.tcl.tvinput/.TvPassThroughService/HW17", R.drawable.mark_playstation, intArrayOf(0xFF00205C.toInt(), 0xFF0070D1.toInt())),
-        Input("Apple TV", "com.tcl.tvinput/.TvPassThroughService/HW18", R.drawable.mark_appletv, intArrayOf(0xFF1C1C1E.toInt(), 0xFF48484A.toInt())),
+        Input("Apple TV", "com.tcl.tvinput/.TvPassThroughService/HW18", R.drawable.mark_apple, intArrayOf(0xFF1C1C1E.toInt(), 0xFF48484A.toInt())),
     )
 
     // TCL's own sound-output switch: TvSettings writes EnSound.SoundOutput codes to this Global setting
