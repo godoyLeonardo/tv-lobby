@@ -27,7 +27,7 @@ The script does more than install the APK:
 
 Edit [`Lobby.kt`](app/src/main/java/com/leo/tvlobby/Lobby.kt):
 
-- `inputs`: tile label, `TvInputService` id, brand mark and gradient colors. To list the ids, run `adb shell dumpsys tv_input`. `HW15`–`HW18` are HDMI 1–4.
+- `inputs`: tile label, HDMI port, `TvInputService` id, brand mark, gradient colors and an optional wake hint. To list the ids, run `adb shell dumpsys tv_input`. `HW15`–`HW18` are HDMI 1–4.
 - `outputs`: TCL's sound-output codes, which are written to the Global setting `tcl_device_out_type`. 2 is the speakers, 16 is ARC/eARC.
 - `favoriteApps` / `hiddenApps`: package names.
 
@@ -40,7 +40,7 @@ The [Manrope](https://github.com/googlefonts/manrope) font in `assets/fonts` is 
 ## How it works
 
 - **HDMI:** `ACTION_VIEW` on `TvContract.buildChannelUriForPassthroughInput(id)`, which TCL's `com.tcl.tv` opens.
-- **Wake:** the input tile also runs `cmd hdmi_control deviceselect` for the device on that port (found by port in `dumpsys hdmi_control`), which sends the CEC power-on and makes it the active source. That needs a system permission, so the app runs it through the TV's own network ADB (`127.0.0.1:5555`, via [dadb](https://github.com/mobile-dev-inc/dadb)). The first time, the TV asks to allow debugging for TV Lobby's key: choose **Always allow**. A device with CEC turned off (Switch 2 here) still switches, it just isn't woken.
+- **Wake:** the input tile also runs `cmd hdmi_control deviceselect` for the device on that port (found by port in `dumpsys hdmi_control`), which sends the CEC power-on and makes it the active source. That needs a system permission, so the app runs it through the TV's own network ADB (`127.0.0.1:5555`, via [dadb](https://github.com/mobile-dev-inc/dadb)). The first time, the TV asks to allow debugging for TV Lobby's key: choose **Always allow**. A device that isn't on CEC (Switch 2 here) still switches, it just isn't woken: if its input has no signal, the lobby shows the input's `wakeHint` (for the Switch 2, press HOME on a controller).
 - **Turn off:** sends CEC `<Standby>` through `IHdmiControlService.sendStandby`. `service call` can't reach it, because TCL wraps `hdmi_control` in its own binder interface and the shell stamps that interface's token. So the app runs its own `CecTool` class as the shell user with `app_process`, which writes the AOSP token. The transaction number (37) comes from this TV's framework and may change with a firmware update.
 - **Audio:** TCL's TvSettings switches the output by writing `tcl_device_out_type`, and the TCL audio service reroutes when that value changes. The app writes the same setting.
 

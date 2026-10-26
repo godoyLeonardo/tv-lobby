@@ -185,7 +185,14 @@ class MainActivity : Activity() {
     private fun open(input: Input) {
         val channel = TvContract.buildChannelUriForPassthroughInput(input.inputId)
         launch(Intent(Intent.ACTION_VIEW).setDataAndType(channel, TvContract.Channels.CONTENT_ITEM_TYPE))
-        localAdb.wakeHdmiDevice(input.hdmiPort, onError = { toast("Couldn't wake ${input.label}: allow TV Lobby's debugging prompt") })
+        localAdb.wakeHdmiDevice(
+            input.hdmiPort,
+            onError = { toast("Couldn't wake ${input.label}: allow TV Lobby's debugging prompt") },
+            onAbsent = {
+                val signal = runCatching { tvInputs?.getInputState(input.inputId) }.getOrNull()
+                if (signal != TvInputManager.INPUT_STATE_CONNECTED) toast("${input.label} is asleep and the TV can't wake it. ${input.wakeHint}")
+            },
+        )
     }
 
     private fun turnOff(input: Input) {
