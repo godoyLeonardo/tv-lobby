@@ -114,6 +114,8 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : Fra
         title.text = label
         title.textSize = 15f
         detail.visibility = GONE
+        text.gravity = Gravity.BOTTOM
+        text.setPadding(context.dp(16), 0, context.dp(16), context.dp(12))
         addView(ImageView(context).apply { setImageDrawable(icon) }, LayoutParams(context.dp(36), context.dp(36), Gravity.TOP or Gravity.START).apply {
             setMargins(context.dp(16), context.dp(12), 0, 0)
         })
