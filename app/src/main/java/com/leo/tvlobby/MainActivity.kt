@@ -25,6 +25,7 @@ import android.widget.Toast
 class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val tvInputs by lazy { getSystemService(TvInputManager::class.java) }
+    private val localAdb by lazy { LocalAdb(this) }
     private val inputTiles = linkedMapOf<String, Tile>()
     private val outputTiles = linkedMapOf<AudioOutput, Tile>()
     private lateinit var appsRow: LinearLayout
@@ -167,6 +168,9 @@ class MainActivity : Activity() {
         setOnClickListener {
             val channel = TvContract.buildChannelUriForPassthroughInput(input.inputId)
             launch(Intent(Intent.ACTION_VIEW).setDataAndType(channel, TvContract.Channels.CONTENT_ITEM_TYPE))
+            localAdb.wakeHdmiDevice(input.hdmiPort) {
+                handler.post { Toast.makeText(this@MainActivity, "Couldn't wake ${input.label}: allow TV Lobby's debugging prompt", Toast.LENGTH_LONG).show() }
+            }
         }
         inputTiles[input.inputId] = this
     }

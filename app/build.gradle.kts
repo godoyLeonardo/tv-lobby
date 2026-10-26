@@ -28,3 +28,7 @@ kotlin {
         jvmTarget.set(JvmTarget.JVM_17)
     }
 }
+
+dependencies {
+    implementation("dev.mobile:dadb:1.2.10")
+}
