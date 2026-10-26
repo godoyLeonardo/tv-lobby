@@ -27,7 +27,9 @@ object HomeGuard {
                 add("am start -a ${Intent.ACTION_MAIN} -c ${Intent.CATEGORY_HOME}")
             }
         }
-        LocalAdb(context).run(commands.joinToString("; "), onError = { done() }) { done() }
+        val adb = LocalAdb(context)
+        adb.run(commands.joinToString("; "), onError = { done() }) { done() }
+        adb.close()
     }
 }
 

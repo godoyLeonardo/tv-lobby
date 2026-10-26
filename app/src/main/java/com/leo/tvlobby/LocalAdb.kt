@@ -4,6 +4,7 @@ import android.content.Context
 import dadb.AdbKeyPair
 import dadb.Dadb
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.Executors
 
 // Shell commands that need system permissions (HDMI-CEC) go through the TV's own network ADB.
@@ -19,10 +20,34 @@ class LocalAdb(private val context: Context) {
         AdbKeyPair.read(private, public)
     }
 
+    private var connection: Dadb? = null
+
     fun run(command: String, onError: (Throwable) -> Unit, onOutput: (String) -> Unit = {}) = executor.execute {
-        runCatching { Dadb.create("127.0.0.1", 5555, keyPair).use { it.shell(command).output } }
+        runCatching { shell(command) }
             .onSuccess(onOutput)
             .onFailure(onError)
+    }
+
+    fun close() = executor.execute {
+        runCatching { connection?.close() }
+        connection = null
+        executor.shutdown()
+    }
+
+    // One connection, kept open so a burst of commands (the phone remote's D-pad) skips the handshake;
+    // a stale one (the TV slept, adbd restarted) is replaced once.
+    private fun shell(command: String): String {
+        repeat(2) { attempt ->
+            val dadb = connection ?: Dadb.create("127.0.0.1", 5555, keyPair).also { connection = it }
+            try {
+                return dadb.shell(command).output
+            } catch (e: IOException) {
+                runCatching { dadb.close() }
+                connection = null
+                if (attempt == 1) throw e
+            }
+        }
+        error("unreachable")
     }
 
     // Wakes the CEC device on that HDMI port and makes it the active source.
