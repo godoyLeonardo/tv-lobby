@@ -3,7 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-TV="${TV:-192.168.1.20:5555}"
+# The TV's address comes from lobby.properties (see lobby.properties.example); TV= overrides it.
+TV="${TV:-$(sed -n 's/^tv=//p' lobby.properties 2>/dev/null)}"
+[[ -n "$TV" ]] || { echo "Set tv= in lobby.properties (see lobby.properties.example)." >&2; exit 1; }
 PKG=com.leo.tvlobby
 # Their HOME filters carry system priorities (2 and 1) that always beat a third-party home, so they get disabled.
 STOCK_HOMES=(com.google.android.apps.tv.launcherx com.google.android.tungsten.setupwraith)

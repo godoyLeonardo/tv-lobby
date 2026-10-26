@@ -6,6 +6,11 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Home-network addresses, kept out of git: see lobby.properties.example.
+val lobby = Properties().apply {
+    rootProject.file("lobby.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+}
+
 // The release key lives outside the repo; see "Signing" in the README.
 val signing = Properties().apply {
     val path = System.getenv("TV_LOBBY_SIGNING") ?: "${System.getProperty("user.home")}/.config/tv-lobby/signing.properties"
@@ -22,6 +27,11 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "WIIM_HOST", "\"${lobby.getProperty("wiim", "")}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     signingConfigs {

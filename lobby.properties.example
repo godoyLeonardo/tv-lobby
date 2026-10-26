@@ -1,0 +1,8 @@
+# Addresses on your home network. Copy to lobby.properties (gitignored) and fill in.
+# Give both devices a fixed address in the router.
+
+# The TV's network ADB (Developer options > Network debugging).
+tv=192.168.1.20:5555
+
+# A WiiM streamer behind the HDMI eARC output; leave empty if there is none.
+wiim=192.168.1.21

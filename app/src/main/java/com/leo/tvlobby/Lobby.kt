@@ -16,7 +16,7 @@ data class AudioOutput(
     val icon: Int,
     val tclType: Int,
     val accent: Int,
-    // LAN address of a WiiM streamer behind this output (give it a fixed address in the router).
+    // LAN address of a WiiM streamer behind this output, from `wiim` in lobby.properties.
     val wiimHost: String? = null,
 )
 
@@ -34,7 +34,7 @@ object Lobby {
 
     val outputs = listOf(
         AudioOutput("TV speakers", "Internal", R.drawable.icon_tv, 2, 0xFFF5A623.toInt()),
-        AudioOutput("WiiM Ultra", "HDMI eARC", R.drawable.icon_speaker, 16, 0xFF2EC4B6.toInt(), wiimHost = "192.168.1.21"),
+        AudioOutput("WiiM Ultra", "HDMI eARC", R.drawable.icon_speaker, 16, 0xFF2EC4B6.toInt(), wiimHost = BuildConfig.WIIM_HOST.ifEmpty { null }),
     )
 
     // Defaults only: long-press an app in the lobby to pin, move or hide it, which is saved on the TV.
