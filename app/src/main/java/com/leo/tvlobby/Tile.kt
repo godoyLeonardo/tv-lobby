@@ -27,6 +27,8 @@ object Palette {
 
 fun Context.dp(value: Int): Int = (value * resources.displayMetrics.density).roundToInt()
 
+fun Context.icon(res: Int): Drawable = getDrawable(res)!!
+
 fun blend(from: Int, to: Int, ratio: Float): Int {
     fun mix(a: Int, b: Int) = (a + (b - a) * ratio).roundToInt()
     return Color.rgb(mix(Color.red(from), Color.red(to)), mix(Color.green(from), Color.green(to)), mix(Color.blue(from), Color.blue(to)))

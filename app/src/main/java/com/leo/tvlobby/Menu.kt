@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
@@ -12,9 +13,9 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 
-class MenuOption(val label: String, val icon: Int, val accent: Int, val colors: IntArray? = null, val action: () -> Unit)
+class MenuOption(val label: String, val icon: Drawable, val accent: Int, val colors: IntArray? = null, val action: () -> Unit)
 
-class Menu(context: Context, title: String, icon: Int, options: List<MenuOption>) :
+class Menu(context: Context, title: CharSequence, icon: Drawable, options: List<MenuOption>) :
     Dialog(context, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar) {
 
     init {
@@ -22,7 +23,7 @@ class Menu(context: Context, title: String, icon: Int, options: List<MenuOption>
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(context.dp(8), 0, 0, context.dp(8))
-            addView(ImageView(context).apply { setImageDrawable(context.getDrawable(icon)) }, LinearLayout.LayoutParams(context.dp(32), context.dp(32)))
+            addView(ImageView(context).apply { setImageDrawable(icon) }, LinearLayout.LayoutParams(context.dp(32), context.dp(32)))
             addView(TextView(context).apply {
                 text = title
                 textSize = 22f
@@ -63,7 +64,7 @@ class Menu(context: Context, title: String, icon: Int, options: List<MenuOption>
     private fun tile(option: MenuOption) = Tile(context, 200, 72, option.accent).apply {
         title.text = option.label
         detail.visibility = View.GONE
-        showMark(context.getDrawable(option.icon)!!, 26)
+        showMark(option.icon, 26)
         option.colors?.let(::fillWith)
         setOnClickListener {
             dismiss()

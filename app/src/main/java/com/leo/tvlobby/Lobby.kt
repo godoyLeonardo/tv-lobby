@@ -29,6 +29,7 @@ object Lobby {
         AudioOutput("WiiM Ultra", "HDMI eARC", R.drawable.icon_speaker, 16, 0xFF2EC4B6.toInt()),
     )
 
+    // Defaults only: long-press an app in the lobby to pin, move or hide it, which is saved on the TV.
     val favoriteApps = listOf(
         "com.google.android.youtube.tv",
         "com.plexapp.android",

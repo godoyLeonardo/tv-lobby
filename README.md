@@ -4,7 +4,7 @@ A home screen for the living-room TCL Google TV (Android 14). It replaces the Go
 
 - **Inputs:** Switch 2 (HDMI 2), PS5 (HDMI 3), Apple TV (HDMI 4). Each tile shows whether the device is on, in standby or off (its HDMI-CEC power state when it is on CEC, else the HDMI signal), and wakes the device over HDMI-CEC when you open it. Hold OK (or press Menu) on a tile for **Open** and **Turn off**.
 - **Sound:** TV speakers or WiiM Ultra (HDMI eARC). The active output is highlighted. It stays correct when you change the output from the TCL menu.
-- **Apps:** favorites first, then every other installed TV app.
+- **Apps:** pinned apps first, then every other installed TV app. Hold OK (or press Menu) on an app to pin it, move it to the front or hide it; hidden apps wait in a "Hidden apps" tile at the end of the row. These choices are saved on the TV.
 - **Goodnight:** after a confirmation, puts every HDMI-CEC device to sleep (consoles, Apple TV, WiiM), then the TV.
 - **Settings:** a button next to the clock opens the TV settings.
 
@@ -32,7 +32,7 @@ Edit [`Lobby.kt`](app/src/main/java/com/leo/tvlobby/Lobby.kt):
 
 - `inputs`: tile label, HDMI port, `TvInputService` id, brand mark, gradient colors and an optional wake hint. To list the ids, run `adb shell dumpsys tv_input`. `HW15`–`HW18` are HDMI 1–4.
 - `outputs`: TCL's sound-output codes, which are written to the Global setting `tcl_device_out_type`. 2 is the speakers, 16 is ARC/eARC.
-- `favoriteApps` / `hiddenApps`: package names.
+- `favoriteApps` / `hiddenApps`: package names; only the defaults until you pin or hide an app from the lobby.
 
 The brand marks in `res/drawable/mark_*.xml` come from [Simple Icons](https://simpleicons.org) (CC0). The trademarks belong to their owners.
 

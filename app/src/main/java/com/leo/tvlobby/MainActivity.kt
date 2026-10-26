@@ -33,6 +33,7 @@ class MainActivity : Activity() {
     private var shownApps = emptyList<String>()
     private var cecPower = emptyMap<Int, Int>()
     private val prefs by lazy { getSharedPreferences("lobby", MODE_PRIVATE) }
+    private val appPrefs by lazy { AppPrefs(this) }
     private val tilesByKey = mutableMapOf<String, Tile>()
     private var focusLastUsed = true
     private val refreshCecPower = Runnable { refreshCecPower() }
@@ -138,10 +139,10 @@ class MainActivity : Activity() {
             showMark(getDrawable(R.drawable.icon_bedtime)!!, 22)
             setOnClickListener {
                 Menu(
-                    this@MainActivity, "Turn everything off?", R.drawable.icon_bedtime,
+                    this@MainActivity, "Turn everything off?", icon(R.drawable.icon_bedtime),
                     listOf(
-                        MenuOption("Cancel", R.drawable.icon_close, Palette.SURFACE) {},
-                        MenuOption("Goodnight", R.drawable.icon_power, Menu.DANGER) {
+                        MenuOption("Cancel", icon(R.drawable.icon_close), Palette.SURFACE) {},
+                        MenuOption("Goodnight", icon(R.drawable.icon_power), Menu.DANGER) {
                             localAdb.goodnight(onError = { toast("Couldn't turn things off: allow TV Lobby's debugging prompt") })
                         },
                     ),
@@ -201,10 +202,10 @@ class MainActivity : Activity() {
         setOnClickListener { open(input) }
         setOnLongClickListener {
             Menu(
-                this@MainActivity, input.label, input.mark,
+                this@MainActivity, input.label, icon(input.mark),
                 listOf(
-                    MenuOption("Open", R.drawable.icon_input, input.colors.last(), input.colors) { open(input) },
-                    MenuOption("Turn off", R.drawable.icon_power, Menu.DANGER) { turnOff(input) },
+                    MenuOption("Open", icon(R.drawable.icon_input), input.colors.last(), input.colors) { open(input) },
+                    MenuOption("Turn off", icon(R.drawable.icon_power), Menu.DANGER) { turnOff(input) },
                 ),
             ).show()
             true
@@ -255,8 +256,42 @@ class MainActivity : Activity() {
                 rememberLastUsed(appKey(app))
                 launch(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER).setClassName(activity.packageName, activity.name))
             }
+            setOnLongClickListener {
+                showAppMenu(app)
+                true
+            }
             tilesByKey[appKey(app)] = this
         }
+    }
+
+    private fun showAppMenu(app: ResolveInfo) {
+        val pkg = app.activityInfo.packageName
+        val pinned = appPrefs.pinned
+        val options = buildList {
+            when {
+                pkg !in pinned -> add(MenuOption("Pin to front", icon(R.drawable.icon_push_pin), Palette.SURFACE) { appPrefs.pinFirst(pkg) })
+                pinned.first() != pkg -> add(MenuOption("Move to front", icon(R.drawable.icon_push_pin), Palette.SURFACE) { appPrefs.pinFirst(pkg) })
+            }
+            if (pkg in pinned) add(MenuOption("Unpin", icon(R.drawable.icon_close), Palette.SURFACE) { appPrefs.unpin(pkg) })
+            add(MenuOption("Hide", icon(R.drawable.icon_visibility_off), Menu.DANGER) { appPrefs.hide(pkg) })
+        }.map { option -> MenuOption(option.label, option.icon, option.accent) { option.action(); renderApps(focus = appKey(app)) } }
+        Menu(this, app.loadLabel(packageManager), app.activityInfo.loadIcon(packageManager), options).show()
+    }
+
+    private fun hiddenAppsTile(hidden: List<ResolveInfo>) = Tile(this, 160, 90, Palette.SURFACE).apply {
+        showIcon(icon(R.drawable.icon_visibility_off), "Hidden apps (${hidden.size})")
+        setOnClickListener {
+            Menu(
+                this@MainActivity, "Hidden apps", icon(R.drawable.icon_visibility_off),
+                hidden.map { app ->
+                    MenuOption(app.loadLabel(packageManager).toString(), app.activityInfo.loadIcon(packageManager), Palette.SURFACE) {
+                        appPrefs.unhide(app.activityInfo.packageName)
+                        renderApps(focus = appKey(app))
+                    }
+                },
+            ).show()
+        }
+        tilesByKey[HIDDEN_APPS] = this
     }
 
     private fun renderInputs() {
@@ -298,20 +333,25 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun renderApps() {
+    private fun renderApps(focus: String? = null) {
         val launchable = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
-        val apps = packageManager.queryIntentActivities(launchable, 0)
-            .filter { it.activityInfo.packageName != packageName && it.activityInfo.packageName !in Lobby.hiddenApps }
-            .sortedWith(compareBy({ favoriteRank(it.activityInfo.packageName) }, { it.loadLabel(packageManager).toString().lowercase() }))
-        val keys = apps.map { "${it.activityInfo.packageName}/${it.activityInfo.name}" }
+        val pinned = appPrefs.pinned
+        val hidden = appPrefs.hidden
+        val (hiddenApps, apps) = packageManager.queryIntentActivities(launchable, 0)
+            .filter { it.activityInfo.packageName != packageName }
+            .sortedWith(compareBy({ pinRank(pinned, it.activityInfo.packageName) }, { it.loadLabel(packageManager).toString().lowercase() }))
+            .partition { it.activityInfo.packageName in hidden }
+        val keys = apps.map(::appKey) + hiddenApps.map { "hidden:" + appKey(it) }
         if (keys == shownApps) return
         shownApps = keys
         appsRow.removeAllViews()
-        tilesByKey.keys.removeAll { it.startsWith("app:") }
+        tilesByKey.keys.removeAll { it.startsWith("app:") || it == HIDDEN_APPS }
         apps.forEach { appsRow.addView(appTile(it)) }
+        if (hiddenApps.isNotEmpty()) appsRow.addView(hiddenAppsTile(hiddenApps))
+        focus?.let { (tilesByKey[it] ?: tilesByKey[HIDDEN_APPS] ?: appsRow.getChildAt(0))?.requestFocus() }
     }
 
-    private fun favoriteRank(pkg: String) = Lobby.favoriteApps.indexOf(pkg).let { if (it < 0) Int.MAX_VALUE else it }
+    private fun pinRank(pinned: List<String>, pkg: String) = pinned.indexOf(pkg).let { if (it < 0) Int.MAX_VALUE else it }
 
     private fun select(output: AudioOutput) {
         try {
@@ -336,6 +376,7 @@ class MainActivity : Activity() {
 
     private companion object {
         const val LAST_USED = "last_used_tile"
+        const val HIDDEN_APPS = "hidden_apps"
 
         // HdmiControlManager.POWER_STATUS_* (system API, so not visible to apps).
         const val CEC_POWER_ON = 0
