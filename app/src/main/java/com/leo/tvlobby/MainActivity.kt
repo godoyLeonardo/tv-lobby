@@ -5,7 +5,6 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ResolveInfo
 import android.database.ContentObserver
-import android.graphics.Typeface
 import android.media.tv.TvContract
 import android.media.tv.TvInputManager
 import android.os.Bundle
@@ -103,12 +102,13 @@ class MainActivity : Activity() {
             format12Hour = "h:mm"
             textSize = 44f
             setTextColor(Palette.TEXT)
-            typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+            typeface = Fonts.manrope(context, 300)
         })
         addView(TextClock(context).apply {
             format24Hour = "EEEE d MMMM"
             format12Hour = "EEEE d MMMM"
             textSize = 18f
+            typeface = Fonts.manrope(context, 500)
             setTextColor(Palette.MUTED)
             setPadding(dp(20), 0, 0, dp(10))
         })
@@ -117,6 +117,7 @@ class MainActivity : Activity() {
     private fun sectionLabel(text: String) = TextView(this).apply {
         this.text = text.uppercase()
         textSize = 13f
+        typeface = Fonts.manrope(context, 700)
         letterSpacing = 0.14f
         setTextColor(Palette.MUTED)
         setPadding(dp(8), dp(14), 0, 0)

@@ -2,7 +2,6 @@ package com.leo.tvlobby
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
@@ -34,12 +33,13 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, private val accent: In
     val title = TextView(context).apply {
         textSize = 19f
         setTextColor(Palette.TEXT)
-        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        typeface = Fonts.manrope(context, 700)
         maxLines = 1
         ellipsize = TextUtils.TruncateAt.END
     }
     val detail = TextView(context).apply {
         textSize = 13f
+        typeface = Fonts.manrope(context, 500)
         maxLines = 1
     }
 

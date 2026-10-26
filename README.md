@@ -32,6 +32,8 @@ Edit [`Lobby.kt`](app/src/main/java/com/leo/tvlobby/Lobby.kt):
 
 The brand marks in `res/drawable/mark_*.xml` come from [Simple Icons](https://simpleicons.org) (CC0). The trademarks belong to their owners.
 
+The [Manrope](https://github.com/googlefonts/manrope) font in `assets/fonts` is under the SIL Open Font License (`OFL.txt` next to it).
+
 ## How it works
 
 - **HDMI:** `ACTION_VIEW` on `TvContract.buildChannelUriForPassthroughInput(id)`, which TCL's `com.tcl.tv` opens.
