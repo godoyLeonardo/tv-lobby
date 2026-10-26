@@ -99,9 +99,36 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : Fra
         }, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
+    private var markView: ImageView? = null
+    private var backdrop: ImageView? = null
+
+    // A picture behind the text (album art), darkened on the text side; null removes it.
+    fun showBackdrop(image: Drawable?) {
+        if (image == null) {
+            backdrop?.let(::removeView)
+            backdrop = null
+            return
+        }
+        val view = backdrop ?: ImageView(context).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            foreground = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(0xE6000000.toInt(), 0x80000000.toInt()))
+        }.also {
+            addView(it, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+            backdrop = it
+        }
+        view.setImageDrawable(image)
+    }
+
     fun showMark(mark: Drawable, sizeDp: Int) {
+        markView?.let { return it.setImageDrawable(mark) }
         text.setPadding(context.dp(36 + sizeDp), 0, context.dp(16), 0)
-        addView(ImageView(context).apply { setImageDrawable(mark) }, LayoutParams(context.dp(sizeDp), context.dp(sizeDp), Gravity.CENTER_VERTICAL or Gravity.START).apply {
+        markView = ImageView(context).apply {
+            setImageDrawable(mark)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            clipToOutline = true
+            background = GradientDrawable().apply { cornerRadius = context.dp(8).toFloat() }
+        }
+        addView(markView, LayoutParams(context.dp(sizeDp), context.dp(sizeDp), Gravity.CENTER_VERTICAL or Gravity.START).apply {
             marginStart = context.dp(22)
         })
     }

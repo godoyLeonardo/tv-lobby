@@ -1,5 +1,7 @@
 package com.leo.tvlobby
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import org.json.JSONObject
 import java.net.URL
 import java.security.MessageDigest
@@ -14,17 +16,34 @@ import javax.net.ssl.X509TrustManager
 class WiiM(private val host: String) {
     class Status(val mode: Int, val playing: Boolean, val volume: Int, val muted: Boolean, val title: String, val artist: String) {
         val onTv get() = mode == MODE_HDMI
+        val ownSource get() = mode > 0 && !onTv
         val source get() = SOURCES[mode] ?: "Streaming"
         val nowPlaying get() = listOf(title, artist).filter { it.isNotBlank() && it != "Unknown" }.joinToString(" — ").ifEmpty { source }
     }
 
     class Input(val label: String, val command: String, val icon: Int, val modes: Set<Int>)
 
+    class Track(val title: String, val artist: String, val artUrl: String?)
+
     private val executor = Executors.newSingleThreadExecutor()
 
-    fun status(onResult: (Status?) -> Unit) = executor.execute {
-        onResult(runCatching { parse(JSONObject(call("getPlayerStatus"))) }.getOrNull())
+    // The track is only read while the WiiM plays its own source; on TV sound there is none.
+    fun status(onResult: (Status?, Track?) -> Unit) = executor.execute {
+        val status = runCatching { parse(JSONObject(call("getPlayerStatus"))) }.getOrNull()
+        val track = if (status?.ownSource == true) runCatching { parseTrack(JSONObject(call("getMetaInfo")).getJSONObject("metaData")) }.getOrNull() else null
+        onResult(status, track)
     }
+
+    // Album art comes from the streaming service's CDN, not from the WiiM.
+    fun art(url: String, onResult: (Bitmap?) -> Unit) = executor.execute {
+        onResult(runCatching { URL(url).openStream().use(BitmapFactory::decodeStream) }.getOrNull())
+    }
+
+    fun togglePlayback(onDone: (Boolean) -> Unit) = command("setPlayerCmd:onepause", onDone)
+
+    fun next(onDone: (Boolean) -> Unit) = command("setPlayerCmd:next", onDone)
+
+    fun previous(onDone: (Boolean) -> Unit) = command("setPlayerCmd:prev", onDone)
 
     @Volatile
     private var supported: List<Input>? = null
@@ -61,6 +80,12 @@ class WiiM(private val host: String) {
         title = decodeHex(json.optString("Title")),
         artist = decodeHex(json.optString("Artist")),
     )
+
+    // The WiiM reports missing fields as "unknow" or "un_known"; the API document shows some keys with a trailing space.
+    private fun parseTrack(meta: JSONObject): Track {
+        fun field(key: String) = (meta.optString(key).ifEmpty { meta.optString("$key ") }).takeUnless { it.isBlank() || it.startsWith("unknow") || it == "un_known" }
+        return Track(field("title").orEmpty(), field("artist").orEmpty(), field("albumArtURI")?.takeIf { it.startsWith("http") })
+    }
 
     private fun decodeHex(hex: String) = runCatching { String(hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()) }.getOrDefault("")
 

@@ -5,6 +5,8 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ResolveInfo
 import android.database.ContentObserver
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.media.tv.TvContract
 import android.media.tv.TvInputManager
 import android.os.Bundle
@@ -34,6 +36,8 @@ class MainActivity : Activity() {
     private var cecPower = emptyMap<Int, Int>()
     private val wiim = Lobby.outputs.firstNotNullOfOrNull { it.wiimHost }?.let(::WiiM)
     private var wiimStatus: WiiM.Status? = null
+    private var wiimTrack: WiiM.Track? = null
+    private var wiimArt: Pair<String, Bitmap>? = null
     private val prefs by lazy { getSharedPreferences("lobby", MODE_PRIVATE) }
     private val appPrefs by lazy { AppPrefs(this) }
     private val tilesByKey = mutableMapOf<String, Tile>()
@@ -330,10 +334,12 @@ class MainActivity : Activity() {
                 renderInputs()
             }
         }
-        wiim?.status { status ->
+        wiim?.status { status, track ->
             handler.post {
                 wiimStatus = status
+                wiimTrack = track
                 renderOutput()
+                loadWiimArt(track?.artUrl)
             }
         }
         refreshDevicesIn(20_000)
@@ -349,12 +355,18 @@ class MainActivity : Activity() {
         outputTiles.forEach { (output, tile) ->
             tile.active = output.tclType == current
             val streamer = wiimStatus?.takeIf { output.wiimHost != null }
+            // While the WiiM plays its own source, its tile shows the song, over the album art when there is one.
+            val track = wiimTrack.takeIf { streamer?.ownSource == true }
+            tile.title.text = track?.title?.takeIf { it.isNotEmpty() } ?: streamer?.takeIf { it.ownSource }?.nowPlaying ?: output.label
+            val byline = listOfNotNull(track?.artist?.takeIf { it.isNotEmpty() }, streamer?.source).joinToString(" · ")
             when {
                 streamer != null && tile.active && !streamer.onTv -> tile.showStatus("On ${streamer.source}: select for TV sound", Palette.STANDBY)
                 tile.active -> tile.showStatus(listOfNotNull("Playing", streamer?.let { if (it.muted) "Muted" else "Vol ${it.volume}" }).joinToString(" · "), Palette.ON)
-                streamer != null && streamer.playing && !streamer.onTv -> tile.showStatus("${streamer.source}: ${streamer.nowPlaying}", null)
+                streamer?.ownSource == true && streamer.playing -> tile.showStatus(byline, Palette.ON)
+                streamer?.ownSource == true -> tile.showStatus("Paused · $byline", null)
                 else -> tile.showStatus(output.detail, null)
             }
+            if (output.wiimHost != null) tile.showBackdrop(wiimArt?.takeIf { track?.artUrl == it.first }?.let { BitmapDrawable(resources, it.second) })
         }
     }
 
@@ -388,13 +400,41 @@ class MainActivity : Activity() {
         if (output.wiimHost != null) wiim?.useTvSound(::afterWiimCommand)
     }
 
+    private fun loadWiimArt(url: String?) {
+        if (url == null) {
+            wiimArt = null
+            aurora.ambientWith(null)
+            return
+        }
+        if (wiimArt?.first == url) return
+        wiim?.art(url) { bitmap ->
+            handler.post {
+                if (bitmap == null || wiimTrack?.artUrl != url) return@post
+                wiimArt = url to bitmap
+                aurora.ambientWith(Bitmap.createScaledBitmap(bitmap, 1, 1, true).getPixel(0, 0))
+                renderOutput()
+            }
+        }
+    }
+
     private fun showWiimMenu(output: AudioOutput) {
         val wiim = wiim ?: return
         wiim.inputs { inputs ->
             handler.post {
                 val status = wiimStatus
                 val muted = status?.muted == true
+                val playing = status?.playing == true
                 val rows = listOfNotNull(
+                    MenuRow(
+                        "Now playing",
+                        listOf(
+                            MenuOption("Previous", icon(R.drawable.icon_skip_previous), output.accent) { wiim.previous(::afterWiimCommand) },
+                            MenuOption(if (playing) "Pause" else "Play", icon(if (playing) R.drawable.icon_pause else R.drawable.icon_play_arrow), output.accent) {
+                                wiim.togglePlayback(::afterWiimCommand)
+                            },
+                            MenuOption("Next", icon(R.drawable.icon_skip_next), output.accent) { wiim.next(::afterWiimCommand) },
+                        ),
+                    ).takeIf { status?.ownSource == true },
                     MenuRow(
                         "Input",
                         inputs.map { input ->

@@ -21,6 +21,8 @@ class AuroraView(context: Context) : View(context) {
         Blob(0.55f, 1.05f, 0.70f, 0.07f, 4.2f, 0x262EC4B6),
     )
     private val glow = blobs.first()
+    private val ambient = blobs[1]
+    private val defaultAmbient = ambient.color
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val scrim = Paint()
     private var time = 0f
@@ -34,15 +36,20 @@ class AuroraView(context: Context) : View(context) {
             invalidate()
         }
     }
-    private var tint: ValueAnimator? = null
+    private val tints = mutableMapOf<Blob, ValueAnimator>()
 
-    fun glowWith(color: Int?) {
-        val target = color?.let { (it and 0x00FFFFFF) or 0x59000000 } ?: DEFAULT_GLOW
-        tint?.cancel()
-        tint = ValueAnimator.ofArgb(glow.color, target).apply {
+    // Follows the focused tile.
+    fun glowWith(color: Int?) = tint(glow, color?.let { (it and 0x00FFFFFF) or 0x59000000 } ?: DEFAULT_GLOW)
+
+    // Follows what the WiiM is playing (the album cover's color).
+    fun ambientWith(color: Int?) = tint(ambient, color?.let { (it and 0x00FFFFFF) or 0x4D000000 } ?: defaultAmbient)
+
+    private fun tint(blob: Blob, target: Int) {
+        tints.remove(blob)?.cancel()
+        tints[blob] = ValueAnimator.ofArgb(blob.color, target).apply {
             duration = 700
             addUpdateListener {
-                glow.color = it.animatedValue as Int
+                blob.color = it.animatedValue as Int
                 invalidate()
             }
             start()
