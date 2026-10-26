@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Build, install and make TV Deck the home screen. `./deploy.sh stock` gives Home back to Google TV.
+# Build, install and make TV Lobby the home screen. `./deploy.sh stock` gives Home back to Google TV.
 set -euo pipefail
 cd "$(dirname "$0")"
 
 TV="${TV:-192.168.1.20:5555}"
-PKG=com.leo.tvdeck
+PKG=com.leo.tvlobby
 # Their HOME filters carry system priorities (2 and 1) that always beat a third-party home, so they get disabled.
 STOCK_HOMES=(com.google.android.apps.tv.launcherx com.google.android.tungsten.setupwraith)
 
@@ -25,4 +25,4 @@ tv pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS
 for p in "${STOCK_HOMES[@]}"; do tv pm disable-user --user 0 "$p" >/dev/null; done
 tv cmd package set-home-activity "$PKG/.MainActivity"
 tv am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null
-echo "TV Deck is the home screen."
+echo "TV Lobby is the home screen."

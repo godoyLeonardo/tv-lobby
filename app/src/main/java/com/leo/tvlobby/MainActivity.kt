@@ -1,4 +1,4 @@
-package com.leo.tvdeck
+package com.leo.tvlobby
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
@@ -40,7 +40,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(layout())
-        contentResolver.registerContentObserver(Settings.Global.getUriFor(Deck.OUTPUT_SETTING), false, outputObserver)
+        contentResolver.registerContentObserver(Settings.Global.getUriFor(Lobby.OUTPUT_SETTING), false, outputObserver)
         tvInputs?.registerCallback(inputCallback, handler)
         inputTiles.values.first().requestFocus()
     }
@@ -74,9 +74,9 @@ class MainActivity : Activity() {
             clipToPadding = false
             addView(header())
             addView(sectionLabel("Inputs"))
-            addView(row().apply { Deck.inputs.forEach { addView(inputTile(it)) } })
+            addView(row().apply { Lobby.inputs.forEach { addView(inputTile(it)) } })
             addView(sectionLabel("Sound"))
-            addView(row().apply { Deck.outputs.forEach { addView(outputTile(it)) } })
+            addView(row().apply { Lobby.outputs.forEach { addView(outputTile(it)) } })
             addView(sectionLabel("Apps"))
             appsRow = row()
             addView(HorizontalScrollView(context).apply {
@@ -172,7 +172,7 @@ class MainActivity : Activity() {
     }
 
     private fun renderOutput() {
-        val current = Settings.Global.getInt(contentResolver, Deck.OUTPUT_SETTING, 1)
+        val current = Settings.Global.getInt(contentResolver, Lobby.OUTPUT_SETTING, 1)
         outputTiles.forEach { (type, tile) ->
             tile.active = type == current
             tile.showStatus(if (type == current) Palette.ON else null)
@@ -182,7 +182,7 @@ class MainActivity : Activity() {
     private fun renderApps() {
         val launchable = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
         val apps = packageManager.queryIntentActivities(launchable, 0)
-            .filter { it.activityInfo.packageName != packageName && it.activityInfo.packageName !in Deck.hiddenApps }
+            .filter { it.activityInfo.packageName != packageName && it.activityInfo.packageName !in Lobby.hiddenApps }
             .sortedWith(compareBy({ favoriteRank(it.activityInfo.packageName) }, { it.loadLabel(packageManager).toString().lowercase() }))
         val keys = apps.map { "${it.activityInfo.packageName}/${it.activityInfo.name}" }
         if (keys == shownApps) return
@@ -191,11 +191,11 @@ class MainActivity : Activity() {
         apps.forEach { appsRow.addView(appTile(it)) }
     }
 
-    private fun favoriteRank(pkg: String) = Deck.favoriteApps.indexOf(pkg).let { if (it < 0) Int.MAX_VALUE else it }
+    private fun favoriteRank(pkg: String) = Lobby.favoriteApps.indexOf(pkg).let { if (it < 0) Int.MAX_VALUE else it }
 
     private fun select(output: AudioOutput) {
         try {
-            Settings.Global.putInt(contentResolver, Deck.OUTPUT_SETTING, output.tclType)
+            Settings.Global.putInt(contentResolver, Lobby.OUTPUT_SETTING, output.tclType)
         } catch (e: SecurityException) {
             Toast.makeText(this, "Missing WRITE_SECURE_SETTINGS: run ./deploy.sh", Toast.LENGTH_LONG).show()
         }

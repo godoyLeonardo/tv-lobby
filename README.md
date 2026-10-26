@@ -1,4 +1,4 @@
-# tvdeck
+# tv-lobby
 
 A home screen for the living-room TCL Google TV (Android 14). It replaces the Google TV launcher. Everything you use is one or two clicks from Home:
 
@@ -6,7 +6,7 @@ A home screen for the living-room TCL Google TV (Android 14). It replaces the Go
 - **Sound:** TV speakers or WiiM Ultra (HDMI eARC). The active output is highlighted. It stays correct when you change the output from the TCL menu.
 - **Apps:** favorites first, then every other installed TV app.
 
-![TV Deck](screenshot.png)
+![TV Lobby](screenshot.png)
 
 ## Deploy
 
@@ -24,7 +24,7 @@ The script does more than install the APK:
 
 ## Customizing
 
-Edit [`Deck.kt`](app/src/main/java/com/leo/tvdeck/Deck.kt):
+Edit [`Lobby.kt`](app/src/main/java/com/leo/tvlobby/Lobby.kt):
 
 - `inputs`: tile label, port and `TvInputService` id. To list the ids, run `adb shell dumpsys tv_input`. `HW15`–`HW18` are HDMI 1–4.
 - `outputs`: TCL's sound-output codes, which are written to the Global setting `tcl_device_out_type`. 2 is the speakers, 16 is ARC/eARC.

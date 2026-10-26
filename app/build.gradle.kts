@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.leo.tvdeck"
+    namespace = "com.leo.tvlobby"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.leo.tvdeck"
+        applicationId = "com.leo.tvlobby"
         minSdk = 30
         targetSdk = 34
         versionCode = 1

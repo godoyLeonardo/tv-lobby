@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TV Deck</string>
+    <string name="app_name">TV Lobby</string>
     <color name="background">#FF0D0E12</color>
 
-    <style name="Theme.TvDeck" parent="android:Theme.DeviceDefault.NoActionBar">
+    <style name="Theme.TvLobby" parent="android:Theme.DeviceDefault.NoActionBar">
         <item name="android:windowBackground">@color/background</item>
     </style>
 </resources>

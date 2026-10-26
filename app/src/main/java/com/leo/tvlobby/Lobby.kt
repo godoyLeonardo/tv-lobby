@@ -1,10 +1,10 @@
-package com.leo.tvdeck
+package com.leo.tvlobby
 
 data class Input(val label: String, val port: String, val inputId: String, val accent: Int)
 
 data class AudioOutput(val label: String, val detail: String, val tclType: Int, val accent: Int)
 
-object Deck {
+object Lobby {
     // TvInputService ids of this TCL's HDMI ports (`adb shell dumpsys tv_input`): HW15 is HDMI 1, HW18 is HDMI 4.
     val inputs = listOf(
         Input("Switch 2", "HDMI 2", "com.tcl.tvinput/.TvPassThroughService/HW16", 0xFFE60012.toInt()),

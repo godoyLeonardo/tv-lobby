@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "tvdeck"
+rootProject.name = "tv-lobby"
 include(":app")
