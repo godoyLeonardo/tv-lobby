@@ -19,15 +19,32 @@ class LocalAdb(private val context: Context) {
         AdbKeyPair.read(private, public)
     }
 
-    fun run(command: String, onError: (Throwable) -> Unit) = executor.execute {
-        runCatching { Dadb.create("127.0.0.1", 5555, keyPair).use { it.shell(command) } }.onFailure(onError)
+    fun run(command: String, onError: (Throwable) -> Unit, onOutput: (String) -> Unit = {}) = executor.execute {
+        runCatching { Dadb.create("127.0.0.1", 5555, keyPair).use { it.shell(command).output } }
+            .onSuccess(onOutput)
+            .onFailure(onError)
     }
 
-    // Wakes the CEC device on that HDMI port and makes it the active source; a device absent from CEC is left alone.
-    fun wakeHdmiDevice(port: Int, onError: (Throwable) -> Unit) = run(
+    // Wakes the CEC device on that HDMI port and makes it the active source.
+    fun wakeHdmiDevice(port: Int, onError: (Throwable) -> Unit, onAbsent: () -> Unit = {}) =
+        onCecDevice(port, "cmd hdmi_control deviceselect \$la", onError, onAbsent)
+
+    fun standbyHdmiDevice(port: Int, onError: (Throwable) -> Unit, onAbsent: () -> Unit) = onCecDevice(
+        port,
+        "CLASSPATH=\$(pm path ${context.packageName} | sed 's/package://') app_process /system/bin ${CecTool::class.java.name} standby \$la",
+        onError,
+        onAbsent,
+    )
+
+    // Runs `action` with $la set to the logical address of the CEC device on that port, or reports it absent.
+    private fun onCecDevice(port: Int, action: String, onError: (Throwable) -> Unit, onAbsent: () -> Unit) = run(
         "la=\$(dumpsys hdmi_control 2>/dev/null | grep -m1 -E 'CEC: logical_address: 0x[0-9a-f]+ .*port_id: $port\$'" +
             " | sed -E 's/.*logical_address: 0x([0-9a-f]+).*/\\1/'); " +
-            "[ -n \"\$la\" ] && cmd hdmi_control deviceselect \$((16#\$la))",
+            "if [ -n \"\$la\" ]; then la=\$((16#\$la)); $action; else echo $ABSENT; fi",
         onError,
-    )
+    ) { if (it.trim() == ABSENT) onAbsent() }
+
+    private companion object {
+        const val ABSENT = "no-cec-device"
+    }
 }

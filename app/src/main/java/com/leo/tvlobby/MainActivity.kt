@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
@@ -73,6 +74,11 @@ class MainActivity : Activity() {
 
     @Deprecated("A home screen has nowhere to go back to")
     override fun onBackPressed() = Unit
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_MENU && currentFocus?.isLongClickable == true) return currentFocus!!.performLongClick()
+        return super.onKeyDown(keyCode, event)
+    }
 
     private fun layout(): View {
         val column = LinearLayout(this).apply {
@@ -164,15 +170,27 @@ class MainActivity : Activity() {
         title.text = input.label
         showMark(getDrawable(input.mark)!!, 44)
         fillWith(input.colors)
-        setOnClickListener {
-            val channel = TvContract.buildChannelUriForPassthroughInput(input.inputId)
-            launch(Intent(Intent.ACTION_VIEW).setDataAndType(channel, TvContract.Channels.CONTENT_ITEM_TYPE))
-            localAdb.wakeHdmiDevice(input.hdmiPort) {
-                handler.post { Toast.makeText(this@MainActivity, "Couldn't wake ${input.label}: allow TV Lobby's debugging prompt", Toast.LENGTH_LONG).show() }
-            }
+        setOnClickListener { open(input) }
+        setOnLongClickListener {
+            InputMenu(this@MainActivity, input, onOpen = { open(input) }, onTurnOff = { turnOff(input) }).show()
+            true
         }
         inputTiles[input.inputId] = this
     }
+
+    private fun open(input: Input) {
+        val channel = TvContract.buildChannelUriForPassthroughInput(input.inputId)
+        launch(Intent(Intent.ACTION_VIEW).setDataAndType(channel, TvContract.Channels.CONTENT_ITEM_TYPE))
+        localAdb.wakeHdmiDevice(input.hdmiPort, onError = { toast("Couldn't wake ${input.label}: allow TV Lobby's debugging prompt") })
+    }
+
+    private fun turnOff(input: Input) = localAdb.standbyHdmiDevice(
+        input.hdmiPort,
+        onError = { toast("Couldn't turn off ${input.label}: allow TV Lobby's debugging prompt") },
+        onAbsent = { toast("${input.label} isn't on HDMI-CEC, so the TV can't turn it off") },
+    )
+
+    private fun toast(text: String) = handler.post { Toast.makeText(this, text, Toast.LENGTH_LONG).show() }
 
     private fun outputTile(output: AudioOutput) = Tile(this, 256, 80, output.accent).apply {
         title.text = output.label
