@@ -112,6 +112,7 @@ class MainActivity : Activity() {
         gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(8), 0, dp(8), dp(4))
         clipChildren = false
+        clipToPadding = false
         addView(clock(), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         addView(Tile(context, 148, 48, Palette.SURFACE).apply {
             title.text = "Settings"
