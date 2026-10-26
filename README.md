@@ -32,6 +32,8 @@ Edit [`Lobby.kt`](app/src/main/java/com/leo/tvlobby/Lobby.kt):
 
 The brand marks in `res/drawable/mark_*.xml` come from [Simple Icons](https://simpleicons.org) (CC0). The trademarks belong to their owners.
 
+The `res/drawable/icon_*.xml` icons are [Material Symbols](https://github.com/google/material-design-icons) (Apache 2.0).
+
 The [Manrope](https://github.com/googlefonts/manrope) font in `assets/fonts` is under the SIL Open Font License (`OFL.txt` next to it).
 
 ## How it works

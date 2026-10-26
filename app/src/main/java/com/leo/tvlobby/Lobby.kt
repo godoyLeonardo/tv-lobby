@@ -2,7 +2,7 @@ package com.leo.tvlobby
 
 data class Input(val label: String, val inputId: String, val mark: Int, val colors: IntArray)
 
-data class AudioOutput(val label: String, val detail: String, val tclType: Int, val accent: Int)
+data class AudioOutput(val label: String, val detail: String, val icon: Int, val tclType: Int, val accent: Int)
 
 object Lobby {
     // TvInputService ids of this TCL's HDMI ports (`adb shell dumpsys tv_input`): HW15 is HDMI 1, HW18 is HDMI 4.
@@ -17,8 +17,8 @@ object Lobby {
     const val OUTPUT_SETTING = "tcl_device_out_type"
 
     val outputs = listOf(
-        AudioOutput("TV speakers", "Internal", 2, 0xFFF5A623.toInt()),
-        AudioOutput("WiiM Ultra", "HDMI eARC", 16, 0xFF2EC4B6.toInt()),
+        AudioOutput("TV speakers", "Internal", R.drawable.icon_tv, 2, 0xFFF5A623.toInt()),
+        AudioOutput("WiiM Ultra", "HDMI eARC", R.drawable.icon_speaker, 16, 0xFF2EC4B6.toInt()),
     )
 
     val favoriteApps = listOf(

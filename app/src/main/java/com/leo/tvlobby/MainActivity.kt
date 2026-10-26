@@ -132,7 +132,8 @@ class MainActivity : Activity() {
 
     private fun inputTile(input: Input) = Tile(this, 256, 112, input.colors.last()).apply {
         title.text = input.label
-        showMark(getDrawable(input.mark)!!, input.colors)
+        showMark(getDrawable(input.mark)!!, 44)
+        fillWith(input.colors)
         setOnClickListener {
             val channel = TvContract.buildChannelUriForPassthroughInput(input.inputId)
             launch(Intent(Intent.ACTION_VIEW).setDataAndType(channel, TvContract.Channels.CONTENT_ITEM_TYPE))
@@ -140,8 +141,9 @@ class MainActivity : Activity() {
         inputTiles[input.inputId] = this
     }
 
-    private fun outputTile(output: AudioOutput) = Tile(this, 200, 72, output.accent).apply {
+    private fun outputTile(output: AudioOutput) = Tile(this, 256, 80, output.accent).apply {
         title.text = output.label
+        showMark(getDrawable(output.icon)!!, 30)
         setOnClickListener { select(output) }
         outputTiles[output] = this
     }

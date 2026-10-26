@@ -93,12 +93,15 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, private val accent: In
         }, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
-    fun showMark(mark: Drawable, colors: IntArray) {
-        gradient = colors
-        text.setPadding(context.dp(80), 0, context.dp(16), 0)
-        addView(ImageView(context).apply { setImageDrawable(mark) }, LayoutParams(context.dp(44), context.dp(44), Gravity.CENTER_VERTICAL or Gravity.START).apply {
+    fun showMark(mark: Drawable, sizeDp: Int) {
+        text.setPadding(context.dp(36 + sizeDp), 0, context.dp(16), 0)
+        addView(ImageView(context).apply { setImageDrawable(mark) }, LayoutParams(context.dp(sizeDp), context.dp(sizeDp), Gravity.CENTER_VERTICAL or Gravity.START).apply {
             marginStart = context.dp(22)
         })
+    }
+
+    fun fillWith(colors: IntArray) {
+        gradient = colors
         render()
     }
 
