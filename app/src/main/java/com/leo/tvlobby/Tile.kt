@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.text.SpannableStringBuilder
 import android.text.TextUtils
 import android.text.style.ForegroundColorSpan
@@ -51,6 +52,8 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : Fra
     }
     private var gradient: IntArray? = null
     private val ring = GradientDrawable().apply { cornerRadius = context.dp(14).toFloat() }
+    // Dark line inside the white focus ring, so the ring still shows on white app banners.
+    private val ringEdge = GradientDrawable().apply { cornerRadius = context.dp(11).toFloat() }
     private val text = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.CENTER_VERTICAL
@@ -70,7 +73,7 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : Fra
         isFocusable = true
         isClickable = true
         background = fill
-        foreground = ring
+        foreground = LayerDrawable(arrayOf(ring, ringEdge)).apply { setLayerInset(1, context.dp(3), context.dp(3), context.dp(3), context.dp(3)) }
         clipToOutline = true
         addView(text, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         setOnFocusChangeListener { _, hasFocus ->
@@ -122,6 +125,7 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : Fra
             active -> ring.setStroke(context.dp(2), accent)
             else -> ring.setStroke(0, Color.TRANSPARENT)
         }
+        ringEdge.setStroke(if (isFocused) context.dp(2) else 0, if (isFocused) 0x99000000.toInt() else Color.TRANSPARENT)
         detail.setTextColor(if (active || colors != null) Palette.TEXT_SOFT else Palette.MUTED)
     }
 }
