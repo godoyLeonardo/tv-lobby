@@ -38,6 +38,9 @@ object Lobby {
     )
 
     // Defaults only: long-press an app in the lobby to pin, move or hide it, which is saved on the TV.
+    // Long-press the WiiM tile for these.
+    val wiimVolumePresets = listOf("Night" to 20, "Normal" to 40)
+
     val favoriteApps = listOf(
         "com.google.android.youtube.tv",
         "com.plexapp.android",

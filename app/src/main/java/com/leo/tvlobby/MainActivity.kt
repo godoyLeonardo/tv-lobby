@@ -245,6 +245,12 @@ class MainActivity : Activity() {
         title.text = output.label
         showMark(getDrawable(output.icon)!!, 30)
         setOnClickListener { select(output) }
+        if (output.wiimHost != null) {
+            setOnLongClickListener {
+                showWiimMenu(output)
+                true
+            }
+        }
         outputTiles[output] = this
     }
 
@@ -379,7 +385,54 @@ class MainActivity : Activity() {
             Toast.makeText(this, "Missing WRITE_SECURE_SETTINGS: run ./deploy.sh", Toast.LENGTH_LONG).show()
         }
         renderOutput()
-        if (output.wiimHost != null) wiim?.useTvSound { handler.post { refreshDevicesIn(1_000) } }
+        if (output.wiimHost != null) wiim?.useTvSound(::afterWiimCommand)
+    }
+
+    private fun showWiimMenu(output: AudioOutput) {
+        val wiim = wiim ?: return
+        wiim.inputs { inputs ->
+            handler.post {
+                val status = wiimStatus
+                val muted = status?.muted == true
+                val rows = listOfNotNull(
+                    MenuRow(
+                        "Input",
+                        inputs.map { input ->
+                            MenuOption(input.label, icon(input.icon), output.accent, active = status?.mode in input.modes) { useWiimInput(output, input) }
+                        },
+                    ).takeIf { inputs.isNotEmpty() },
+                    MenuRow(
+                        "Volume",
+                        Lobby.wiimVolumePresets.map { (label, volume) ->
+                            MenuOption("$label · $volume", icon(R.drawable.icon_volume_up), output.accent, active = status?.volume == volume) {
+                                wiim.setVolume(volume, ::afterWiimCommand)
+                            }
+                        } + MenuOption(if (muted) "Unmute" else "Mute", icon(if (muted) R.drawable.icon_volume_up else R.drawable.icon_volume_off), output.accent) {
+                            wiim.setMuted(!muted, ::afterWiimCommand)
+                        },
+                    ),
+                    MenuRow(
+                        "Device",
+                        listOf(MenuOption("Restart WiiM", icon(R.drawable.icon_restart_alt), Menu.DANGER) { wiim.restart(::afterWiimCommand) }),
+                    ),
+                )
+                Menu(this, output.label, icon(output.icon), rows).show()
+            }
+        }
+    }
+
+    private fun useWiimInput(output: AudioOutput, input: WiiM.Input) {
+        if (input.modes.contains(WiiM.MODE_HDMI)) return select(output)
+        // TV sound goes to the TV speakers first: while it still goes to the WiiM over eARC, the TV pulls the WiiM back to HDMI.
+        Lobby.outputs.firstOrNull { it.wiimHost == null }?.let(::select)
+        handler.postDelayed({ wiim?.switchTo(input, ::afterWiimCommand) }, 2_000)
+    }
+
+    private fun afterWiimCommand(accepted: Boolean) {
+        handler.post {
+            if (!accepted) toast("The WiiM didn't accept that")
+            refreshDevicesIn(1_500)
+        }
     }
 
     private fun launch(intent: Intent) {

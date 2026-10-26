@@ -18,15 +18,39 @@ class WiiM(private val host: String) {
         val nowPlaying get() = listOf(title, artist).filter { it.isNotBlank() && it != "Unknown" }.joinToString(" — ").ifEmpty { source }
     }
 
+    class Input(val label: String, val command: String, val icon: Int, val modes: Set<Int>)
+
     private val executor = Executors.newSingleThreadExecutor()
 
     fun status(onResult: (Status?) -> Unit) = executor.execute {
         onResult(runCatching { parse(JSONObject(call("getPlayerStatus"))) }.getOrNull())
     }
 
-    fun useTvSound(onDone: () -> Unit) = executor.execute {
-        runCatching { call("setPlayerCmd:switchmode:HDMI") }
-        onDone()
+    @Volatile
+    private var supported: List<Input>? = null
+
+    // The inputs this model has, from the plm_support bitmask, plus network streaming.
+    fun inputs(onResult: (List<Input>) -> Unit) = executor.execute {
+        val inputs = supported ?: runCatching {
+            val plm = JSONObject(call("getStatusEx")).optString("plm_support").removePrefix("0x").toLong(16)
+            INPUTS.filter { (bit, _) -> plm and bit != 0L }.map { it.second } + WIFI
+        }.getOrNull()?.also { supported = it }
+        onResult(inputs.orEmpty())
+    }
+
+    fun useTvSound(onDone: (Boolean) -> Unit) = command("setPlayerCmd:switchmode:HDMI", onDone)
+
+    fun switchTo(input: Input, onDone: (Boolean) -> Unit) = command("setPlayerCmd:switchmode:${input.command}", onDone)
+
+    fun setVolume(volume: Int, onDone: (Boolean) -> Unit) = command("setPlayerCmd:vol:$volume", onDone)
+
+    fun setMuted(muted: Boolean, onDone: (Boolean) -> Unit) = command("setPlayerCmd:mute:${if (muted) 1 else 0}", onDone)
+
+    // The API document's `reboot` is an unknown command on this firmware; StartRebootTime:1 restarts it.
+    fun restart(onDone: (Boolean) -> Unit) = command("StartRebootTime:1", onDone)
+
+    private fun command(command: String, onDone: (Boolean) -> Unit) = executor.execute {
+        onDone(runCatching { call(command) }.getOrNull()?.contains("OK") == true)
     }
 
     private fun parse(json: JSONObject) = Status(
@@ -65,6 +89,16 @@ class WiiM(private val host: String) {
 
     companion object {
         const val MODE_HDMI = 49
+
+        // plm_support bits, from Home Assistant's LinkPlay library (InputMode), with the switchmode names it sends.
+        private val INPUTS = listOf(
+            1024L to Input("TV", "HDMI", R.drawable.icon_tv, setOf(MODE_HDMI)),
+            4L to Input("Bluetooth", "bluetooth", R.drawable.icon_bluetooth, setOf(41)),
+            2L to Input("Line in", "line-in", R.drawable.icon_cable, setOf(40)),
+            65536L to Input("Phono", "phono", R.drawable.icon_album, setOf(54)),
+            16L to Input("Optical", "optical", R.drawable.icon_settings_input_component, setOf(43)),
+        )
+        private val WIFI = Input("Wi-Fi", "wifi", R.drawable.icon_wifi, (1..3).toSet() + (10..39))
         private const val LINKPLAY_CERT_SHA256 = "AA60EE2F280BE02E131BBCFFA8804E9C43958B462C90A3D8536D8751C2BEF00A"
 
         // LinkPlay playback modes.
@@ -74,10 +108,12 @@ class WiiM(private val host: String) {
             2 to "DLNA",
             31 to "Spotify",
             32 to "TIDAL",
+            36 to "Qobuz",
             40 to "Line in",
             41 to "Bluetooth",
             43 to "Optical",
             49 to "TV",
+            54 to "Phono",
         )
     }
 }
