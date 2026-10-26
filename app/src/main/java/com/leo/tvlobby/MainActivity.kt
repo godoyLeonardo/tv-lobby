@@ -5,6 +5,8 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ResolveInfo
 import android.database.ContentObserver
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.media.tv.TvContract
 import android.media.tv.TvInputManager
 import android.os.Bundle
@@ -88,10 +90,22 @@ class MainActivity : Activity() {
         return ScrollView(this).apply {
             isVerticalScrollBarEnabled = false
             isFillViewport = true
-            setBackgroundColor(Palette.BACKGROUND)
+            background = backdrop()
             addView(column)
         }
     }
+
+    private fun backdrop() = LayerDrawable(
+        arrayOf(
+            GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(0xFF161A24.toInt(), Palette.BACKGROUND)),
+            GradientDrawable().apply {
+                gradientType = GradientDrawable.RADIAL_GRADIENT
+                gradientRadius = resources.displayMetrics.widthPixels * 0.6f
+                setGradientCenter(0.1f, 0f)
+                colors = intArrayOf(0x402C4A8C, 0x00000000)
+            },
+        )
+    )
 
     private fun header(): View = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
