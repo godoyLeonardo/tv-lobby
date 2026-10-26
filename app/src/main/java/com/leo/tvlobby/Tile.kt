@@ -116,7 +116,7 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, private val accent: In
 
     private fun render() {
         val colors = gradient
-        if (colors != null) fill.colors = colors else fill.setColor(blend(Palette.SURFACE, accent, if (active) 0.6f else 0.25f))
+        if (colors != null) fill.colors = colors else fill.setColor(blend(Palette.SURFACE, accent, if (active) 0.6f else 0.08f))
         when {
             isFocused -> ring.setStroke(context.dp(3), Palette.TEXT)
             active -> ring.setStroke(context.dp(2), accent)
