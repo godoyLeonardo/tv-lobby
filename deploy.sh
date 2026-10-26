@@ -27,10 +27,15 @@ SIGNING="${TV_LOBBY_SIGNING:-$HOME/.config/tv-lobby/signing.properties}"
 [[ -f local.properties ]] || echo "sdk.dir=${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}" > local.properties
 ./gradlew -q assembleRelease
 # The update closes the lobby; reopen it only if it was on screen (or this is the first setup), so the TV stays on
-# whatever is being watched. Without this, a closed lobby falls back to the last app, often the TV's HDMI player.
+# whatever is being watched.
 home_before=$(tv cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME | tail -1)
 on_screen=$(tv dumpsys window | grep -m1 mCurrentFocus)
+# With the lobby on screen, the install closes it and Android falls back to the last app, often the TV's HDMI player,
+# which switches the input over CEC and wakes that device. Settings covers the lobby meanwhile.
+[[ "$on_screen" == *"$PKG/"* ]] && tv am start -a android.settings.SETTINGS >/dev/null
 adb -s "$TV" install -r app/build/outputs/apk/release/app-release.apk
+# TCL drops the update broadcast, so the phone remote is restarted here rather than waiting for the lobby to open.
+tv am start-foreground-service -n "$PKG/.RemoteService" >/dev/null
 tv pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS
 for p in "${STOCK_HOMES[@]}"; do tv pm disable-user --user 0 "$p" >/dev/null; done
 tv cmd package set-home-activity "$PKG/.MainActivity"
