@@ -41,6 +41,13 @@ class Health(private val context: Context, private val controls: Controls) {
             ) { done(if (it.trim() == "ok") pass("Connected; waking, turning off and the phone remote work") else fail("Unexpected answer: $it")) }
         })
 
+        add(Check("Volume keys") { done ->
+            done(
+                if (VolumeKeyService.isEnabled(context)) pass("On: they set the WiiM's volume while it plays its own source")
+                else fail("Off: open the lobby once, or run ./deploy.sh"),
+            )
+        })
+
         add(Check("HDMI-CEC") { done ->
             controls.localAdb.cecPowerByPort { power ->
                 val (on, off) = Lobby.inputs.partition { it.hdmiPort in power }

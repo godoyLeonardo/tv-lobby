@@ -18,6 +18,7 @@ object HomeGuard {
             .resolveActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY)
             ?.activityInfo?.packageName
         val canSwitchAudio = context.checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED
+        if (canSwitchAudio) VolumeKeyService.enable(context)
 
         val commands = buildList {
             if (!canSwitchAudio) add("pm grant $pkg ${Manifest.permission.WRITE_SECURE_SETTINGS}")

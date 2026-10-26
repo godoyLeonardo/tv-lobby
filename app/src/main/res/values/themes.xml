@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TV Lobby</string>
+    <string name="volume_keys_label">TV Lobby volume keys</string>
+    <string name="volume_keys_description">While the WiiM plays its own source, the remote\'s volume keys set the WiiM\'s volume instead of the TV speakers\'.</string>
     <color name="background">#FF0D0E12</color>
 
     <style name="Theme.TvLobby" parent="android:Theme.DeviceDefault.NoActionBar">

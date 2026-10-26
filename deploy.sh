@@ -37,6 +37,14 @@ adb -s "$TV" install -r app/build/outputs/apk/release/app-release.apk
 # TCL drops the update broadcast, so the phone remote is restarted here rather than waiting for the lobby to open.
 tv am start-foreground-service -n "$PKG/.RemoteService" >/dev/null
 tv pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS
+# The volume-keys accessibility service, added to whatever else is enabled.
+VOLUME_KEYS="$PKG/$PKG.VolumeKeyService"
+enabled=$(tv settings get secure enabled_accessibility_services | tr -d '\r')
+if [[ ":$enabled:" != *":$VOLUME_KEYS:"* ]]; then
+  [[ -z "$enabled" || "$enabled" == "null" ]] && enabled="$VOLUME_KEYS" || enabled="$enabled:$VOLUME_KEYS"
+  tv settings put secure enabled_accessibility_services "$enabled"
+  tv settings put secure accessibility_enabled 1
+fi
 for p in "${STOCK_HOMES[@]}"; do tv pm disable-user --user 0 "$p" >/dev/null; done
 tv cmd package set-home-activity "$PKG/.MainActivity"
 if [[ "$home_before" != "$PKG/"* || "$on_screen" == *"$PKG/"* ]]; then
