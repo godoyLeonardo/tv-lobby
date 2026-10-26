@@ -1,15 +1,15 @@
 package com.leo.tvlobby
 
-data class Input(val label: String, val port: String, val inputId: String, val accent: Int)
+data class Input(val label: String, val inputId: String, val mark: Int, val colors: IntArray)
 
 data class AudioOutput(val label: String, val detail: String, val tclType: Int, val accent: Int)
 
 object Lobby {
     // TvInputService ids of this TCL's HDMI ports (`adb shell dumpsys tv_input`): HW15 is HDMI 1, HW18 is HDMI 4.
     val inputs = listOf(
-        Input("Switch 2", "HDMI 2", "com.tcl.tvinput/.TvPassThroughService/HW16", 0xFFE60012.toInt()),
-        Input("PS5", "HDMI 3", "com.tcl.tvinput/.TvPassThroughService/HW17", 0xFF0070D1.toInt()),
-        Input("Apple TV", "HDMI 4", "com.tcl.tvinput/.TvPassThroughService/HW18", 0xFFA2AAAD.toInt()),
+        Input("Switch 2", "com.tcl.tvinput/.TvPassThroughService/HW16", R.drawable.mark_switch, intArrayOf(0xFFB3000E.toInt(), 0xFFFF2A2A.toInt())),
+        Input("PS5", "com.tcl.tvinput/.TvPassThroughService/HW17", R.drawable.mark_playstation, intArrayOf(0xFF00205C.toInt(), 0xFF0070D1.toInt())),
+        Input("Apple TV", "com.tcl.tvinput/.TvPassThroughService/HW18", R.drawable.mark_appletv, intArrayOf(0xFF1C1C1E.toInt(), 0xFF48484A.toInt())),
     )
 
     // TCL's own sound-output switch: TvSettings writes EnSound.SoundOutput codes to this Global setting

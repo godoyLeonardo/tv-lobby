@@ -129,9 +129,9 @@ class MainActivity : Activity() {
         clipToPadding = false
     }
 
-    private fun inputTile(input: Input) = Tile(this, 200, 104, input.accent).apply {
+    private fun inputTile(input: Input) = Tile(this, 240, 104, input.colors.last()).apply {
         title.text = input.label
-        detail.text = input.port
+        showMark(getDrawable(input.mark)!!, input.colors)
         setOnClickListener {
             val channel = TvContract.buildChannelUriForPassthroughInput(input.inputId)
             launch(Intent(Intent.ACTION_VIEW).setDataAndType(channel, TvContract.Channels.CONTENT_ITEM_TYPE))

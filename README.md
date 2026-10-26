@@ -26,9 +26,11 @@ The script does more than install the APK:
 
 Edit [`Lobby.kt`](app/src/main/java/com/leo/tvlobby/Lobby.kt):
 
-- `inputs`: tile label, port and `TvInputService` id. To list the ids, run `adb shell dumpsys tv_input`. `HW15`–`HW18` are HDMI 1–4.
+- `inputs`: tile label, `TvInputService` id, brand mark and gradient colors. To list the ids, run `adb shell dumpsys tv_input`. `HW15`–`HW18` are HDMI 1–4.
 - `outputs`: TCL's sound-output codes, which are written to the Global setting `tcl_device_out_type`. 2 is the speakers, 16 is ARC/eARC.
 - `favoriteApps` / `hiddenApps`: package names.
+
+The brand marks in `res/drawable/mark_*.xml` come from [Simple Icons](https://simpleicons.org) (CC0). The trademarks belong to their owners.
 
 ## How it works
 

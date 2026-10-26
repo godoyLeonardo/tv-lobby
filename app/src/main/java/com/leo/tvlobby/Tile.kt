@@ -43,7 +43,11 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, private val accent: In
         maxLines = 1
     }
 
-    private val fill = GradientDrawable().apply { cornerRadius = context.dp(14).toFloat() }
+    private val fill = GradientDrawable().apply {
+        cornerRadius = context.dp(14).toFloat()
+        orientation = GradientDrawable.Orientation.TL_BR
+    }
+    private var gradient: IntArray? = null
     private val ring = GradientDrawable().apply { cornerRadius = context.dp(14).toFloat() }
     private val dotFill = GradientDrawable().apply { shape = GradientDrawable.OVAL }
     private val dot = View(context).apply {
@@ -96,6 +100,17 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, private val accent: In
         }, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
+    fun showMark(mark: Drawable, colors: IntArray) {
+        gradient = colors
+        detail.visibility = GONE
+        text.gravity = Gravity.CENTER_VERTICAL
+        text.setPadding(context.dp(80), 0, context.dp(16), 0)
+        addView(ImageView(context).apply { setImageDrawable(mark) }, LayoutParams(context.dp(44), context.dp(44), Gravity.CENTER_VERTICAL or Gravity.START).apply {
+            marginStart = context.dp(22)
+        })
+        render()
+    }
+
     fun showIcon(icon: Drawable, label: CharSequence) {
         title.text = label
         title.textSize = 15f
@@ -106,7 +121,8 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, private val accent: In
     }
 
     private fun render() {
-        fill.setColor(blend(Palette.SURFACE, accent, if (active) 0.6f else 0.25f))
+        val colors = gradient
+        if (colors != null) fill.colors = colors else fill.setColor(blend(Palette.SURFACE, accent, if (active) 0.6f else 0.25f))
         when {
             isFocused -> ring.setStroke(context.dp(3), Palette.TEXT)
             active -> ring.setStroke(context.dp(2), accent)
