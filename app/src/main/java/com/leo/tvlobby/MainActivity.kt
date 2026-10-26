@@ -455,7 +455,10 @@ class MainActivity : Activity() {
                     ),
                     MenuRow(
                         "Device",
-                        listOf(MenuOption("Restart WiiM", icon(R.drawable.icon_restart_alt), Menu.DANGER) { wiim.restart(::afterWiimCommand) }),
+                        listOf(
+                            MenuOption("Reset Spotify", icon(R.drawable.icon_link_off), output.accent) { wiim.resetSpotifyConnect(::afterWiimCommand) },
+                            MenuOption("Restart WiiM", icon(R.drawable.icon_restart_alt), Menu.DANGER) { wiim.restart(::afterWiimCommand) },
+                        ),
                     ),
                 )
                 Menu(this, output.label, icon(output.icon), rows).show()

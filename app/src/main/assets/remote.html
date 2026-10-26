@@ -178,6 +178,7 @@
         { label: wiim?.muted ? "Unmute" : "Mute", action: () => post(`/api/wiim/mute/${wiim?.muted ? 0 : 1}`) },
       ] },
       { label: "Device", options: [
+        { label: "Reset Spotify", detail: "When Spotify stops listing the WiiM", action: () => confirm("Reset Spotify Connect on the WiiM? Spotify will sign in again.") && post("/api/wiim/spotify-reset") },
         { label: "Restart WiiM", detail: "When its screen or knob stop responding", danger: true, action: () => confirm("Restart the WiiM?") && post("/api/wiim/restart") },
       ] },
     ]);

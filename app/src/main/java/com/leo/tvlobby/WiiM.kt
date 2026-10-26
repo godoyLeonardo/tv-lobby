@@ -3,6 +3,7 @@ package com.leo.tvlobby
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import org.json.JSONObject
+import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import java.security.cert.CertificateException
@@ -64,6 +65,30 @@ class WiiM(private val host: String) {
     fun setVolume(volume: Int, onDone: (Boolean) -> Unit) = command("setPlayerCmd:vol:$volume", onDone)
 
     fun setMuted(muted: Boolean, onDone: (Boolean) -> Unit) = command("setPlayerCmd:mute:${if (muted) 1 else 0}", onDone)
+
+    // Spotify Connect's ZeroConf getInfo: whether the WiiM's Spotify endpoint answers, and who is signed in.
+    fun spotifyConnectUser(onResult: (Result<String>) -> Unit) = executor.execute {
+        onResult(runCatching {
+            val connection = URL("http://$host:5356/zc?action=getInfo&version=1.0").openConnection() as HttpURLConnection
+            connection.connectTimeout = 3_000
+            connection.readTimeout = 3_000
+            JSONObject(connection.inputStream.bufferedReader().use { it.readText() }).optString("activeUser")
+        })
+    }
+
+    // Spotify Connect's ZeroConf reset: forgets the signed-in accounts, so Spotify shows the WiiM again when it stopped appearing.
+    fun resetSpotifyConnect(onDone: (Boolean) -> Unit) = executor.execute {
+        onDone(runCatching {
+            val connection = URL("http://$host:5356/zc").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.connectTimeout = 3_000
+            connection.readTimeout = 3_000
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+            connection.outputStream.use { it.write("action=resetUsers&version=1.0".toByteArray()) }
+            connection.responseCode == 200
+        }.getOrDefault(false))
+    }
 
     // The API document's `reboot` is an unknown command on this firmware; StartRebootTime:1 restarts it.
     fun restart(onDone: (Boolean) -> Unit) = command("StartRebootTime:1", onDone)

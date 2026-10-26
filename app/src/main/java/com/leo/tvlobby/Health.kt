@@ -65,6 +65,19 @@ class Health(private val context: Context, private val controls: Controls) {
             })
         }
 
+        if (wiim != null) {
+            add(Check("Spotify Connect") { done ->
+                wiim.spotifyConnectUser { result ->
+                    done(
+                        result.fold(
+                            { user -> pass(if (user.isEmpty() || user == "null") "Ready on the WiiM; no one signed in" else "Signed in as $user") },
+                            { fail("The WiiM's Spotify endpoint doesn't answer: try Reset Spotify, then Restart WiiM") },
+                        ),
+                    )
+                }
+            })
+        }
+
         add(Check("Phone remote") { done ->
             thread {
                 val listening = runCatching { Socket().use { it.connect(InetSocketAddress("127.0.0.1", RemoteService.PORT), 1_000) } }.isSuccess

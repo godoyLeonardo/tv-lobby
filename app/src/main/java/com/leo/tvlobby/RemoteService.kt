@@ -125,6 +125,7 @@ class RemoteService : Service() {
             "toggle" -> wiim.togglePlayback(done::complete)
             "next" -> wiim.next(done::complete)
             "restart" -> wiim.restart(done::complete)
+            "spotify-reset" -> wiim.resetSpotifyConnect(done::complete)
             else -> return Response("404 Not Found", JSON, "{}")
         }
         val accepted = runCatching { done.get(6, TimeUnit.SECONDS) }.getOrDefault(false)
