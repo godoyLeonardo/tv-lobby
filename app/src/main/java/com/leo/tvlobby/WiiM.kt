@@ -15,10 +15,20 @@ import javax.net.ssl.X509TrustManager
 
 // LinkPlay HTTP API of a WiiM streamer on the LAN.
 class WiiM(private val host: String) {
-    class Status(val mode: Int, val playing: Boolean, val volume: Int, val muted: Boolean, val title: String, val artist: String) {
+    class Status(
+        val mode: Int,
+        val vendor: String,
+        val playing: Boolean,
+        val volume: Int,
+        val muted: Boolean,
+        val title: String,
+        val artist: String,
+    ) {
         val onTv get() = mode == MODE_HDMI
         val ownSource get() = mode > 0 && !onTv
-        val source get() = SOURCES[mode] ?: "Streaming"
+
+        // Network playback (mode 10) names its service only in `vendor`, e.g. "YouTubeMusic".
+        val source get() = VENDORS[vendor] ?: vendor.ifEmpty { null } ?: SOURCES[mode] ?: "Streaming"
         val nowPlaying get() = listOf(title, artist).filter { it.isNotBlank() && it != "Unknown" }.joinToString(" — ").ifEmpty { source }
     }
 
@@ -99,6 +109,7 @@ class WiiM(private val host: String) {
 
     private fun parse(json: JSONObject) = Status(
         mode = json.optString("mode").toIntOrNull() ?: -1,
+        vendor = json.optString("vendor"),
         playing = json.optString("status") == "play",
         volume = json.optString("vol").toIntOrNull() ?: 0,
         muted = json.optString("mute") == "1",
@@ -151,11 +162,14 @@ class WiiM(private val host: String) {
         private val WIFI = Input("Wi-Fi", "wifi", R.drawable.icon_wifi, (1..3).toSet() + (10..39))
         private const val LINKPLAY_CERT_SHA256 = "AA60EE2F280BE02E131BBCFFA8804E9C43958B462C90A3D8536D8751C2BEF00A"
 
+        private val VENDORS = mapOf("YouTubeMusic" to "YouTube Music", "AmazonMusic" to "Amazon Music", "Tidal" to "TIDAL")
+
         // LinkPlay playback modes.
         private val SOURCES = mapOf(
             0 to "Idle",
             1 to "AirPlay",
             2 to "DLNA",
+            10 to "Wi-Fi",
             31 to "Spotify",
             32 to "TIDAL",
             36 to "Qobuz",
