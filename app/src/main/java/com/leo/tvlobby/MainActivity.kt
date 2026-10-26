@@ -183,7 +183,13 @@ class MainActivity : Activity() {
         fillWith(input.colors)
         setOnClickListener { open(input) }
         setOnLongClickListener {
-            InputMenu(this@MainActivity, input, onOpen = { open(input) }, onTurnOff = { turnOff(input) }).show()
+            Menu(
+                this@MainActivity, input.label, input.mark,
+                listOf(
+                    MenuOption("Open", R.drawable.icon_input, input.colors.last(), input.colors) { open(input) },
+                    MenuOption("Turn off", R.drawable.icon_power, Menu.DANGER) { turnOff(input) },
+                ),
+            ).show()
             true
         }
         inputTiles[input] = this
