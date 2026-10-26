@@ -13,9 +13,18 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 
-class MenuOption(val label: String, val icon: Drawable, val accent: Int, val colors: IntArray? = null, val action: () -> Unit)
+class MenuOption(
+    val label: String,
+    val icon: Drawable,
+    val accent: Int,
+    val colors: IntArray? = null,
+    val active: Boolean = false,
+    val action: () -> Unit,
+)
 
-class Menu(context: Context, title: CharSequence, icon: Drawable, options: List<MenuOption>) :
+class MenuRow(val label: String?, val options: List<MenuOption>)
+
+class Menu(context: Context, title: CharSequence, icon: Drawable, rows: List<MenuRow>) :
     Dialog(context, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar) {
 
     init {
@@ -32,13 +41,7 @@ class Menu(context: Context, title: CharSequence, icon: Drawable, options: List<
                 setPadding(context.dp(14), 0, 0, 0)
             })
         }
-        val row = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(context.dp(8), context.dp(10), context.dp(8), context.dp(10))
-            clipChildren = false
-            clipToPadding = false
-            options.forEach { addView(tile(it)) }
-        }
+        val firstTiles = mutableListOf<View>()
         setContentView(LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
@@ -49,16 +52,36 @@ class Menu(context: Context, title: CharSequence, icon: Drawable, options: List<
             clipChildren = false
             clipToPadding = false
             addView(header)
-            addView(HorizontalScrollView(context).apply {
-                isHorizontalScrollBarEnabled = false
-                clipChildren = false
-                clipToPadding = false
-                addView(row)
-            })
+            rows.forEach { row ->
+                row.label?.let { addView(rowLabel(it)) }
+                val tiles = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(context.dp(8), context.dp(10), context.dp(8), context.dp(10))
+                    clipChildren = false
+                    clipToPadding = false
+                    row.options.forEach { addView(tile(it)) }
+                }
+                tiles.getChildAt(0)?.let(firstTiles::add)
+                addView(HorizontalScrollView(context).apply {
+                    isHorizontalScrollBarEnabled = false
+                    clipChildren = false
+                    clipToPadding = false
+                    addView(tiles)
+                })
+            }
         })
         window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window?.setDimAmount(0.6f)
-        setOnShowListener { row.getChildAt(0)?.requestFocus() }
+        setOnShowListener { firstTiles.firstOrNull()?.requestFocus() }
+    }
+
+    private fun rowLabel(text: String) = TextView(context).apply {
+        this.text = text.uppercase()
+        textSize = 12f
+        typeface = Fonts.manrope(context, 700)
+        letterSpacing = 0.14f
+        setTextColor(Palette.MUTED)
+        setPadding(context.dp(8), context.dp(8), 0, 0)
     }
 
     private fun tile(option: MenuOption) = Tile(context, 200, 72, option.accent).apply {
@@ -66,6 +89,7 @@ class Menu(context: Context, title: CharSequence, icon: Drawable, options: List<
         detail.visibility = View.GONE
         showMark(option.icon, 26)
         option.colors?.let(::fillWith)
+        active = option.active
         setOnClickListener {
             dismiss()
             option.action()

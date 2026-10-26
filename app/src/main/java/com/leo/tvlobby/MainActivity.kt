@@ -142,12 +142,12 @@ class MainActivity : Activity() {
             setOnClickListener {
                 Menu(
                     this@MainActivity, "Turn everything off?", icon(R.drawable.icon_bedtime),
-                    listOf(
+                    listOf(MenuRow(null, listOf(
                         MenuOption("Cancel", icon(R.drawable.icon_close), Palette.SURFACE) {},
                         MenuOption("Goodnight", icon(R.drawable.icon_power), Menu.DANGER) {
                             localAdb.goodnight(onError = { toast("Couldn't turn things off: allow TV Lobby's debugging prompt") })
                         },
-                    ),
+                    ))),
                 ).show()
             }
         })
@@ -205,10 +205,10 @@ class MainActivity : Activity() {
         setOnLongClickListener {
             Menu(
                 this@MainActivity, input.label, icon(input.mark),
-                listOf(
+                listOf(MenuRow(null, listOf(
                     MenuOption("Open", icon(R.drawable.icon_input), input.colors.last(), input.colors) { open(input) },
                     MenuOption("Turn off", icon(R.drawable.icon_power), Menu.DANGER) { turnOff(input) },
-                ),
+                ))),
             ).show()
             true
         }
@@ -277,7 +277,7 @@ class MainActivity : Activity() {
             if (pkg in pinned) add(MenuOption("Unpin", icon(R.drawable.icon_close), Palette.SURFACE) { appPrefs.unpin(pkg) })
             add(MenuOption("Hide", icon(R.drawable.icon_visibility_off), Menu.DANGER) { appPrefs.hide(pkg) })
         }.map { option -> MenuOption(option.label, option.icon, option.accent) { option.action(); renderApps(focus = appKey(app)) } }
-        Menu(this, app.loadLabel(packageManager), app.activityInfo.loadIcon(packageManager), options).show()
+        Menu(this, app.loadLabel(packageManager), app.activityInfo.loadIcon(packageManager), listOf(MenuRow(null, options))).show()
     }
 
     private fun hiddenAppsTile(hidden: List<ResolveInfo>) = Tile(this, 160, 90, Palette.SURFACE).apply {
@@ -285,12 +285,17 @@ class MainActivity : Activity() {
         setOnClickListener {
             Menu(
                 this@MainActivity, "Hidden apps", icon(R.drawable.icon_visibility_off),
-                hidden.map { app ->
-                    MenuOption(app.loadLabel(packageManager).toString(), app.activityInfo.loadIcon(packageManager), Palette.SURFACE) {
-                        appPrefs.unhide(app.activityInfo.packageName)
-                        renderApps(focus = appKey(app))
-                    }
-                },
+                listOf(
+                    MenuRow(
+                        null,
+                        hidden.map { app ->
+                            MenuOption(app.loadLabel(packageManager).toString(), app.activityInfo.loadIcon(packageManager), Palette.SURFACE) {
+                                appPrefs.unhide(app.activityInfo.packageName)
+                                renderApps(focus = appKey(app))
+                            }
+                        },
+                    ),
+                ),
             ).show()
         }
         tilesByKey[HIDDEN_APPS] = this
