@@ -27,10 +27,12 @@ class MainActivity : Activity() {
     private val tvInputs by lazy { getSystemService(TvInputManager::class.java) }
     private val localAdb by lazy { LocalAdb(this) }
     private val aurora by lazy { AuroraView(this) }
-    private val inputTiles = linkedMapOf<String, Tile>()
+    private val inputTiles = linkedMapOf<Input, Tile>()
     private val outputTiles = linkedMapOf<AudioOutput, Tile>()
     private lateinit var appsRow: LinearLayout
     private var shownApps = emptyList<String>()
+    private var cecPower = emptyMap<Int, Int>()
+    private val refreshCecPower = Runnable { refreshCecPower() }
 
     private val outputObserver = object : ContentObserver(handler) {
         override fun onChange(selfChange: Boolean) = renderOutput()
@@ -52,12 +54,14 @@ class MainActivity : Activity() {
         super.onResume()
         aurora.resume()
         renderInputs()
+        refreshCecPower()
         renderOutput()
         renderApps()
     }
 
     override fun onPause() {
         aurora.pause()
+        handler.removeCallbacks(refreshCecPower)
         super.onPause()
     }
 
@@ -175,7 +179,7 @@ class MainActivity : Activity() {
             InputMenu(this@MainActivity, input, onOpen = { open(input) }, onTurnOff = { turnOff(input) }).show()
             true
         }
-        inputTiles[input.inputId] = this
+        inputTiles[input] = this
     }
 
     private fun open(input: Input) {
@@ -184,11 +188,14 @@ class MainActivity : Activity() {
         localAdb.wakeHdmiDevice(input.hdmiPort, onError = { toast("Couldn't wake ${input.label}: allow TV Lobby's debugging prompt") })
     }
 
-    private fun turnOff(input: Input) = localAdb.standbyHdmiDevice(
-        input.hdmiPort,
-        onError = { toast("Couldn't turn off ${input.label}: allow TV Lobby's debugging prompt") },
-        onAbsent = { toast("${input.label} isn't on HDMI-CEC, so the TV can't turn it off") },
-    )
+    private fun turnOff(input: Input) {
+        localAdb.standbyHdmiDevice(
+            input.hdmiPort,
+            onError = { toast("Couldn't turn off ${input.label}: allow TV Lobby's debugging prompt") },
+            onAbsent = { toast("${input.label} isn't on HDMI-CEC, so the TV can't turn it off") },
+        )
+        refreshCecPowerIn(3_000)
+    }
 
     private fun toast(text: String) = handler.post { Toast.makeText(this, text, Toast.LENGTH_LONG).show() }
 
@@ -212,14 +219,34 @@ class MainActivity : Activity() {
     }
 
     private fun renderInputs() {
-        inputTiles.forEach { (inputId, tile) ->
-            val state = runCatching { tvInputs?.getInputState(inputId) }.getOrNull()
-            when (state) {
-                TvInputManager.INPUT_STATE_CONNECTED -> tile.showStatus("On", Palette.ON)
-                TvInputManager.INPUT_STATE_CONNECTED_STANDBY -> tile.showStatus("Standby", Palette.STANDBY)
-                else -> tile.showStatus("Off", null)
+        inputTiles.forEach { (input, tile) ->
+            when (cecPower[input.hdmiPort]) {
+                CEC_POWER_ON, CEC_POWER_TRANSIENT_TO_ON -> tile.showStatus("On", Palette.ON)
+                CEC_POWER_STANDBY, CEC_POWER_TRANSIENT_TO_STANDBY -> tile.showStatus("Standby", Palette.STANDBY)
+                else -> when (runCatching { tvInputs?.getInputState(input.inputId) }.getOrNull()) {
+                    TvInputManager.INPUT_STATE_CONNECTED -> tile.showStatus("On", Palette.ON)
+                    TvInputManager.INPUT_STATE_CONNECTED_STANDBY -> tile.showStatus("Standby", Palette.STANDBY)
+                    else -> tile.showStatus("Off", null)
+                }
             }
         }
+    }
+
+    // The HDMI signal state says "on" for a device that is asleep but keeps its output alive (Apple TV),
+    // so devices on CEC show their CEC power status instead; the TV's CEC service re-polls it about every minute.
+    private fun refreshCecPower() {
+        localAdb.cecPowerByPort { power ->
+            handler.post {
+                cecPower = power
+                renderInputs()
+            }
+        }
+        refreshCecPowerIn(20_000)
+    }
+
+    private fun refreshCecPowerIn(delayMillis: Long) {
+        handler.removeCallbacks(refreshCecPower)
+        handler.postDelayed(refreshCecPower, delayMillis)
     }
 
     private fun renderOutput() {
@@ -259,5 +286,13 @@ class MainActivity : Activity() {
         } catch (e: ActivityNotFoundException) {
             Toast.makeText(this, "Nothing on this TV opens that", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    // HdmiControlManager.POWER_STATUS_* (system API, so not visible to apps).
+    private companion object {
+        const val CEC_POWER_ON = 0
+        const val CEC_POWER_STANDBY = 1
+        const val CEC_POWER_TRANSIENT_TO_ON = 2
+        const val CEC_POWER_TRANSIENT_TO_STANDBY = 3
     }
 }

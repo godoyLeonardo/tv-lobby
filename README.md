@@ -2,7 +2,7 @@
 
 A home screen for the living-room TCL Google TV (Android 14). It replaces the Google TV launcher. Everything you use is one or two clicks from Home:
 
-- **Inputs:** Switch 2 (HDMI 2), PS5 (HDMI 3), Apple TV (HDMI 4). Each tile shows whether the device is on, in standby or off, and wakes the device over HDMI-CEC when you open it. Hold OK (or press Menu) on a tile for **Open** and **Turn off**.
+- **Inputs:** Switch 2 (HDMI 2), PS5 (HDMI 3), Apple TV (HDMI 4). Each tile shows whether the device is on, in standby or off (its HDMI-CEC power state when it is on CEC, else the HDMI signal), and wakes the device over HDMI-CEC when you open it. Hold OK (or press Menu) on a tile for **Open** and **Turn off**.
 - **Sound:** TV speakers or WiiM Ultra (HDMI eARC). The active output is highlighted. It stays correct when you change the output from the TCL menu.
 - **Apps:** favorites first, then every other installed TV app.
 - **Settings:** a button next to the clock opens the TV settings.

@@ -36,6 +36,14 @@ class LocalAdb(private val context: Context) {
         onAbsent,
     )
 
+    // CEC power status of each device in the TV's CEC list, keyed by HDMI port; a device asleep without CEC is absent.
+    fun cecPowerByPort(onResult: (Map<Int, Int>) -> Unit) = run(
+        "dumpsys hdmi_control 2>/dev/null | grep -E 'CEC: logical_address: .*port_id: [1-9][0-9]*\$' | sort -u",
+        onError = {},
+    ) { output ->
+        onResult(output.lines().mapNotNull(CEC_DEVICE::find).associate { it.groupValues[2].toInt() to it.groupValues[1].toInt() })
+    }
+
     // Runs `action` with $la set to the logical address of the CEC device on that port, or reports it absent.
     private fun onCecDevice(port: Int, action: String, onError: (Throwable) -> Unit, onAbsent: () -> Unit) = run(
         "la=\$(dumpsys hdmi_control 2>/dev/null | grep -m1 -E 'CEC: logical_address: 0x[0-9a-f]+ .*port_id: $port\$'" +
@@ -46,5 +54,6 @@ class LocalAdb(private val context: Context) {
 
     private companion object {
         const val ABSENT = "no-cec-device"
+        val CEC_DEVICE = Regex("""power_status: (-?\d+) .*port_id: (\d+)$""")
     }
 }
