@@ -33,6 +33,7 @@ object HomeGuard {
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        RemoteService.start(context)
         val pending = goAsync()
         HomeGuard.ensure(context.applicationContext) { pending.finish() }
     }

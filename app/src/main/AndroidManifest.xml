@@ -12,6 +12,9 @@
     <!-- Reaches the TV's own ADB on 127.0.0.1:5555 to send HDMI-CEC wake commands. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- RemoteService: the phone remote page, served while the TV shows anything. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <queries>
         <package android:name="com.tcl.tvinput" />
@@ -47,6 +50,15 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".RemoteService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Serves a remote-control page for this TV on the home network" />
+        </service>
 
         <receiver
             android:name=".BootReceiver"

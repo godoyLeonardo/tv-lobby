@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d0e12">
+<title>TV Lobby</title>
+<style>
+  :root {
+    --bg: #0d0e12;
+    --surface: #1b1d24;
+    --text: #f2f3f5;
+    --muted: #8a8f98;
+    --on: #3ddc84;
+    --standby: #ffb020;
+    --danger: #e5484d;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    background: radial-gradient(120% 60% at 10% 0%, #1e2a4a 0%, var(--bg) 60%) fixed, var(--bg);
+    color: var(--text);
+    font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 2px 18px; }
+  h1 { margin: 0; font-size: 24px; font-weight: 700; }
+  #status { color: var(--muted); font-size: 13px; }
+  h2 { margin: 22px 2px 10px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  button {
+    appearance: none; border: 0; border-radius: var(--radius); padding: 16px; min-height: 76px;
+    color: var(--text); background: var(--surface); text-align: left; font: inherit; cursor: pointer;
+    transition: transform .08s ease, filter .15s ease;
+  }
+  button:active { transform: scale(.97); filter: brightness(1.15); }
+  button:disabled { opacity: .5; }
+  .name { display: block; font-weight: 700; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .detail { display: block; margin-top: 3px; font-size: 13px; color: rgba(255,255,255,.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dot::before { content: "● "; }
+  .dot.on::before { color: var(--on); }
+  .dot.standby::before { color: var(--standby); }
+  .output.active { outline: 2px solid var(--on); outline-offset: -2px; }
+  .output .art { float: right; width: 44px; height: 44px; margin: -4px -4px 0 8px; border-radius: 8px; object-fit: cover; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .danger { background: color-mix(in srgb, var(--danger) 22%, var(--surface)); }
+</style>
+</head>
+<body>
+<header><h1>TV Lobby</h1><span id="status">Connecting…</span></header>
+
+<h2>Inputs</h2>
+<div class="grid" id="inputs"></div>
+
+<h2>Sound</h2>
+<div class="grid" id="outputs"></div>
+
+<h2>TV</h2>
+<div class="row">
+  <button id="lobby"><span class="name">Lobby</span><span class="detail">Back to the home screen</span></button>
+  <button id="goodnight" class="danger"><span class="name">Goodnight</span><span class="detail">Everything off</span></button>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const status = $("status");
+
+  async function post(path) {
+    status.textContent = "Sending…";
+    try {
+      await fetch(path, { method: "POST" });
+      setTimeout(refresh, 1500);
+    } catch {
+      status.textContent = "TV not reachable";
+    }
+  }
+
+  function el(tag, props = {}, children = []) {
+    const node = Object.assign(document.createElement(tag), props);
+    node.append(...children);
+    return node;
+  }
+
+  function render(state) {
+    $("inputs").replaceChildren(...state.inputs.map((input) => {
+      const button = el("button", { onclick: () => post(`/api/input/${input.port}`) }, [
+        el("span", { className: "name", textContent: input.label }),
+        el("span", { className: `detail dot ${input.power}`, textContent: input.power[0].toUpperCase() + input.power.slice(1) }),
+      ]);
+      button.style.background = `linear-gradient(135deg, ${input.colors.join(", ")})`;
+      return button;
+    }));
+
+    const wiim = state.wiim;
+    $("outputs").replaceChildren(...state.outputs.map((output) => {
+      let detail = output.detail;
+      const isWiim = output.label.startsWith("WiiM") && wiim;
+      if (isWiim && !wiim.onTv && wiim.title) detail = [wiim.title, wiim.artist].filter(Boolean).join(" — ");
+      else if (isWiim && output.active) detail = wiim.muted ? "Muted" : `Vol ${wiim.volume}`;
+      const children = [
+        el("span", { className: "name", textContent: output.label }),
+        el("span", { className: `detail ${output.active ? "dot on" : ""}`, textContent: detail }),
+      ];
+      if (isWiim && wiim.art) children.unshift(el("img", { className: "art", src: wiim.art, alt: "" }));
+      return el("button", { className: `output ${output.active ? "active" : ""}`, onclick: () => post(`/api/output/${output.type}`) }, children);
+    }));
+  }
+
+  async function refresh() {
+    try {
+      const response = await fetch("/api/state");
+      render(await response.json());
+      status.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      status.textContent = "TV not reachable";
+    }
+  }
+
+  $("lobby").onclick = () => post("/api/lobby");
+  $("goodnight").onclick = () => confirm("Turn the TV and every device off?") && post("/api/goodnight");
+
+  refresh();
+  setInterval(refresh, 5000);
+  document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && refresh());
+</script>
+</body>
+</html>

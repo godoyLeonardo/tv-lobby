@@ -58,6 +58,7 @@ class MainActivity : Activity() {
         contentResolver.registerContentObserver(Settings.Global.getUriFor(Lobby.OUTPUT_SETTING), false, outputObserver)
         tvInputs?.registerCallback(inputCallback, handler)
         HomeGuard.ensure(this)
+        RemoteService.start(this)
     }
 
     override fun onResume() {

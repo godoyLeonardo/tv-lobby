@@ -7,6 +7,7 @@ A home screen for the living-room TCL Google TV (Android 14). It replaces the Go
 - **Apps:** pinned apps first, then every other installed TV app. Hold OK (or press Menu) on an app to pin it, move it to the front or hide it; hidden apps wait in a "Hidden apps" tile at the end of the row. These choices are saved on the TV.
 - **Goodnight:** after a confirmation, puts every HDMI-CEC device to sleep (consoles, Apple TV, WiiM), then the TV.
 - **Settings:** a button next to the clock opens the TV settings.
+- **Phone remote:** open `http://<TV address>:8888` on a phone on the same network for inputs, sound, Lobby and Goodnight, even while the TV shows an HDMI input. It has no login: anyone on the home network can use it.
 
 ![TV Lobby](screenshot.png)
 
@@ -50,6 +51,7 @@ The [Manrope](https://github.com/googlefonts/manrope) font in `assets/fonts` is 
 - **Wake:** the input tile also runs `cmd hdmi_control deviceselect` for the device on that port (found by port in `dumpsys hdmi_control`), which sends the CEC power-on and makes it the active source. That needs a system permission, so the app runs it through the TV's own network ADB (`127.0.0.1:5555`, via [dadb](https://github.com/mobile-dev-inc/dadb)). The first time, the TV asks to allow debugging for TV Lobby's key: choose **Always allow**. A device that isn't on CEC (Switch 2 here) still switches, it just isn't woken: if its input has no signal, the lobby shows the input's `wakeHint` (for the Switch 2, press HOME on a controller).
 - **Turn off:** sends CEC `<Standby>` through `IHdmiControlService.sendStandby`. `service call` can't reach it, because TCL wraps `hdmi_control` in its own binder interface and the shell stamps that interface's token. So the app runs its own `CecTool` class as the shell user with `app_process`, which writes the AOSP token. It reads the transaction number from the framework's own `IHdmiControlService.Stub` at each call, so a firmware update that renumbers the interface doesn't break it.
 - **WiiM:** LinkPlay's HTTP API on the WiiM (`getPlayerStatus`, `setPlayerCmd:switchmode:…`, `vol`, `mute`; `plm_support` in `getStatusEx` lists the inputs; `StartRebootTime:1` restarts it, since the documented `reboot` is unknown to its firmware). The WiiM serves LinkPlay's self-signed certificate, so the app pins that exact certificate and talks only to the configured address (`wiimHost` in `Lobby.kt`).
+- **Phone remote:** `RemoteService`, a foreground service with a minimal HTTP server, serves `assets/remote.html` and a small JSON API. A background app may not start activities, so switching inputs and returning to the lobby go through the TV's shell (`am start`) over the local ADB.
 - **Audio:** TCL's TvSettings switches the output by writing `tcl_device_out_type`, and the TCL audio service reroutes when that value changes. The app writes the same setting.
 
 Requirements: JDK 17+ and the Android SDK (`brew install --cask android-commandlinetools`, platform 35).
