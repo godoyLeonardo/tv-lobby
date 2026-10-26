@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build, install and make TV Lobby the home screen. `./deploy.sh stock` gives Home back to Google TV.
+# Build, install and make TV Lobby the home screen. `./deploy.sh stock` uninstalls it and gives Home back to Google TV.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -12,6 +12,8 @@ adb connect "$TV" >/dev/null
 tv() { adb -s "$TV" shell "$@"; }
 
 if [[ "${1:-}" == "stock" ]]; then
+  # Uninstalled, or its boot-time HomeGuard would disable the stock homes again.
+  adb -s "$TV" uninstall "$PKG" >/dev/null || true
   for p in "${STOCK_HOMES[@]}"; do tv pm enable "$p" >/dev/null; done
   tv am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null
   echo "Home is Google TV again."

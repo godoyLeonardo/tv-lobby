@@ -15,13 +15,15 @@ ADB over the network must be on (the TV is at `192.168.1.20:5555`; set `TV=` to 
 
 ```bash
 ./deploy.sh          # build, install, grant permission, make it Home
-./deploy.sh stock    # give Home back to Google TV
+./deploy.sh stock    # uninstall TV Lobby, give Home back to Google TV
 ```
 
 The script does more than install the APK:
 
 - It grants `WRITE_SECURE_SETTINGS`, which the audio switch needs.
 - It disables `launcherx` and `setupwraith` for user 0. Their HOME filters have system priorities that always win against a third-party launcher. `stock` turns them back on.
+
+If a firmware update re-enables them or revokes the permission, the app redoes both by itself through the TV's own ADB, at boot and whenever the lobby starts. That is why `./deploy.sh stock` uninstalls the app rather than only re-enabling them.
 
 ## Customizing
 

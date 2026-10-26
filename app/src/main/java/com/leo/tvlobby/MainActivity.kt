@@ -48,6 +48,7 @@ class MainActivity : Activity() {
         contentResolver.registerContentObserver(Settings.Global.getUriFor(Lobby.OUTPUT_SETTING), false, outputObserver)
         tvInputs?.registerCallback(inputCallback, handler)
         inputTiles.values.first().requestFocus()
+        HomeGuard.ensure(this)
     }
 
     override fun onResume() {
