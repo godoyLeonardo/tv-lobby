@@ -41,13 +41,6 @@ class Health(private val context: Context, private val controls: Controls) {
             ) { done(if (it.trim() == "ok") pass("Connected; waking, turning off and the phone remote work") else fail("Unexpected answer: $it")) }
         })
 
-        add(Check("Starts at boot") { done ->
-            controls.localAdb.run(
-                "appops get $pkg AUTO_START",
-                onError = { done(fail("Couldn't read it: the TV's ADB is unreachable")) },
-            ) { done(if ("allow" in it) pass("Allowed, so the phone remote runs without opening the lobby") else fail("TCL blocks it: run ./deploy.sh, or open the lobby once")) }
-        })
-
         add(Check("HDMI-CEC") { done ->
             controls.localAdb.cecPowerByPort { power ->
                 val (on, off) = Lobby.inputs.partition { it.hdmiPort in power }

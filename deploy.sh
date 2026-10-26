@@ -30,12 +30,8 @@ SIGNING="${TV_LOBBY_SIGNING:-$HOME/.config/tv-lobby/signing.properties}"
 # whatever is being watched. Without this, a closed lobby falls back to the last app, often the TV's HDMI player.
 home_before=$(tv cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME | tail -1)
 on_screen=$(tv dumpsys window | grep -m1 mCurrentFocus)
-# Granted before an update too: the update broadcast that restarts the phone remote fires during the install.
-tv appops set "$PKG" AUTO_START allow 2>/dev/null || true
 adb -s "$TV" install -r app/build/outputs/apk/release/app-release.apk
 tv pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS
-# TCL blocks boot and update broadcasts for apps without this; the phone remote starts from them.
-tv appops set "$PKG" AUTO_START allow
 for p in "${STOCK_HOMES[@]}"; do tv pm disable-user --user 0 "$p" >/dev/null; done
 tv cmd package set-home-activity "$PKG/.MainActivity"
 if [[ "$home_before" != "$PKG/"* || "$on_screen" == *"$PKG/"* ]]; then

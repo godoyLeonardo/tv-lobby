@@ -20,9 +20,6 @@ object HomeGuard {
         val canSwitchAudio = context.checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED
 
         val commands = buildList {
-            // TCL's app-boot manager drops BOOT_COMPLETED and MY_PACKAGE_REPLACED for apps without its AUTO_START app op,
-            // which is off by default: without it the phone remote and this guard wait until the lobby is opened.
-            add("appops get $pkg AUTO_START | grep -q allow || appops set $pkg AUTO_START allow")
             if (!canSwitchAudio) add("pm grant $pkg ${Manifest.permission.WRITE_SECURE_SETTINGS}")
             if (home != pkg) {
                 STOCK_HOMES.forEach { add("pm disable-user --user 0 $it") }
@@ -30,6 +27,7 @@ object HomeGuard {
                 if (showHome) add("am start -a ${Intent.ACTION_MAIN} -c ${Intent.CATEGORY_HOME}")
             }
         }
+        if (commands.isEmpty()) return done()
         val adb = LocalAdb(context)
         adb.run(commands.joinToString("; "), onError = { done() }) { done() }
         adb.close()
