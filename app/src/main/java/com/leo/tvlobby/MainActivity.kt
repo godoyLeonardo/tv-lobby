@@ -24,7 +24,7 @@ class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val tvInputs by lazy { getSystemService(TvInputManager::class.java) }
     private val inputTiles = linkedMapOf<String, Tile>()
-    private val outputTiles = linkedMapOf<Int, Tile>()
+    private val outputTiles = linkedMapOf<AudioOutput, Tile>()
     private lateinit var appsRow: LinearLayout
     private var shownApps = emptyList<String>()
 
@@ -130,7 +130,7 @@ class MainActivity : Activity() {
         clipToPadding = false
     }
 
-    private fun inputTile(input: Input) = Tile(this, 240, 104, input.colors.last()).apply {
+    private fun inputTile(input: Input) = Tile(this, 256, 112, input.colors.last()).apply {
         title.text = input.label
         showMark(getDrawable(input.mark)!!, input.colors)
         setOnClickListener {
@@ -142,9 +142,8 @@ class MainActivity : Activity() {
 
     private fun outputTile(output: AudioOutput) = Tile(this, 200, 72, output.accent).apply {
         title.text = output.label
-        detail.text = output.detail
         setOnClickListener { select(output) }
-        outputTiles[output.tclType] = this
+        outputTiles[output] = this
     }
 
     private fun appTile(app: ResolveInfo): Tile {
@@ -162,21 +161,19 @@ class MainActivity : Activity() {
     private fun renderInputs() {
         inputTiles.forEach { (inputId, tile) ->
             val state = runCatching { tvInputs?.getInputState(inputId) }.getOrNull()
-            tile.showStatus(
-                when (state) {
-                    TvInputManager.INPUT_STATE_CONNECTED -> Palette.ON
-                    TvInputManager.INPUT_STATE_CONNECTED_STANDBY -> Palette.STANDBY
-                    else -> null
-                }
-            )
+            when (state) {
+                TvInputManager.INPUT_STATE_CONNECTED -> tile.showStatus("On", Palette.ON)
+                TvInputManager.INPUT_STATE_CONNECTED_STANDBY -> tile.showStatus("Standby", Palette.STANDBY)
+                else -> tile.showStatus("Off", null)
+            }
         }
     }
 
     private fun renderOutput() {
         val current = Settings.Global.getInt(contentResolver, Lobby.OUTPUT_SETTING, 1)
-        outputTiles.forEach { (type, tile) ->
-            tile.active = type == current
-            tile.showStatus(if (type == current) Palette.ON else null)
+        outputTiles.forEach { (output, tile) ->
+            tile.active = output.tclType == current
+            if (tile.active) tile.showStatus("Playing", Palette.ON) else tile.showStatus(output.detail, null)
         }
     }
 
