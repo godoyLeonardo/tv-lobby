@@ -68,10 +68,42 @@
   .status-row .mark { width: 20px; text-align: center; }
   .status-row .ok { color: var(--on); }
   .status-row .bad { color: var(--danger); }
+
+  .tabs { display: inline-flex; background: var(--surface); border-radius: 999px; padding: 3px; margin: 0 0 6px 2px; }
+  .tabs button { min-height: 0; padding: 7px 16px; border-radius: 999px; background: none; color: var(--muted); font-weight: 600; text-align: center; }
+  .tabs button[aria-selected="true"] { background: #2a2e38; color: var(--text); }
+
+  #remote-view { max-width: 360px; margin: 8px auto 0; }
+  .remote-top { display: flex; justify-content: space-between; margin-bottom: 18px; }
+  .round { width: 56px; height: 56px; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; }
+  .round svg, .key svg { width: 26px; height: 26px; fill: currentColor; }
+  .power { color: var(--danger); }
+  .clickpad { position: relative; width: 260px; height: 260px; margin: 0 auto 22px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+  .clickpad button { position: absolute; min-height: 0; padding: 0; background: none; display: grid; place-items: center; color: var(--muted); }
+  .clickpad button:active { color: var(--text); background: rgba(255,255,255,.06); transform: none; }
+  .clickpad .up { left: 80px; top: 0; width: 100px; height: 80px; border-radius: 50% 50% 0 0; }
+  .clickpad .down { left: 80px; bottom: 0; width: 100px; height: 80px; border-radius: 0 0 50% 50%; }
+  .clickpad .left { left: 0; top: 80px; width: 80px; height: 100px; border-radius: 50% 0 0 50%; }
+  .clickpad .right { right: 0; top: 80px; width: 80px; height: 100px; border-radius: 0 50% 50% 0; }
+  .clickpad .ok { left: 80px; top: 80px; width: 100px; height: 100px; border-radius: 50%; background: #2a2e38; color: var(--text); font-weight: 700; }
+  .keys { display: grid; grid-template-columns: 1fr 1fr 72px; gap: 14px 18px; align-items: center; justify-items: center; }
+  .key { width: 64px; height: 64px; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; }
+  .rocker { grid-column: 3; grid-row: 1 / span 2; width: 64px; height: 142px; min-height: 0; padding: 0; border-radius: 32px; background: var(--surface); display: grid; grid-template-rows: 1fr 1fr; overflow: hidden; }
+  .rocker button { min-height: 0; border-radius: 0; background: none; font-size: 28px; font-weight: 300; text-align: center; padding: 0; }
+  .keyboard { display: flex; gap: 8px; margin-top: 22px; }
+  .keyboard[hidden] { display: none; }
+  .keyboard input { flex: 1; min-width: 0; border: 0; border-radius: 14px; padding: 14px; background: var(--surface); color: var(--text); font: inherit; }
+  .keyboard button { min-height: 0; padding: 0 14px; border-radius: 14px; text-align: center; }
 </style>
 </head>
 <body>
 <header><h1>TV Lobby</h1><span id="status">Connecting…</span></header>
+<div class="tabs" role="tablist">
+  <button role="tab" id="tab-lobby" aria-selected="true">Lobby</button>
+  <button role="tab" id="tab-remote" aria-selected="false">Remote</button>
+</div>
+
+<main id="lobby-view">
 
 <h2>Inputs</h2>
 <div class="grid" id="inputs"></div>
@@ -87,6 +119,39 @@
 </div>
 
 <p class="hint">Hold a card with ••• for more.</p>
+</main>
+
+<section id="remote-view" hidden aria-label="Remote">
+  <div class="remote-top">
+    <button class="round power" data-key="power" aria-label="Power"><svg viewBox="0 0 24 24"><path d="M12 3a1 1 0 0 0-1 1v8a1 1 0 0 0 2 0V4a1 1 0 0 0-1-1zm5.14 2.86a1 1 0 0 0-1.42 1.42A7 7 0 1 1 6.3 7.28a1 1 0 0 0-1.42-1.42 9 9 0 1 0 12.26 0z"/></svg></button>
+    <button class="round" id="keyboard-toggle" aria-label="Keyboard"><svg viewBox="0 0 24 24"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm11 5H8v-2h8v2zm0-3h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg></button>
+  </div>
+
+  <div class="clickpad">
+    <button class="up" data-key="up" data-repeat aria-label="Up"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M7.4 15.4 12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg></button>
+    <button class="left" data-key="left" data-repeat aria-label="Left"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M15.4 16.6 10.8 12l4.6-4.6L14 6l-6 6 6 6z"/></svg></button>
+    <button class="ok" data-key="ok" aria-label="OK">OK</button>
+    <button class="right" data-key="right" data-repeat aria-label="Right"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></button>
+    <button class="down" data-key="down" data-repeat aria-label="Down"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg></button>
+  </div>
+
+  <div class="keys">
+    <button class="key" data-key="back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15.4 16.6 10.8 12l4.6-4.6L14 6l-6 6 6 6z"/></svg></button>
+    <button class="key" data-key="home" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5v2h8v-2h5a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 14H3V5h18v12z"/></svg></button>
+    <div class="rocker">
+      <button data-key="volume-up" data-repeat aria-label="Volume up">+</button>
+      <button data-key="volume-down" data-repeat aria-label="Volume down">−</button>
+    </div>
+    <button class="key" data-key="play-pause" aria-label="Play or pause"><svg viewBox="0 0 24 24"><path d="M3 5v14l9-7zm10 0h3v14h-3zm5 0h3v14h-3z"/></svg></button>
+    <button class="key" data-key="mute" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.18l2.45 2.45c.03-.2.05-.41.05-.63zM19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a9 9 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></svg></button>
+  </div>
+
+  <form class="keyboard" id="keyboard" hidden autocomplete="off">
+    <input id="keyboard-text" placeholder="Type on the TV" enterkeyhint="send" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button type="button" data-key="delete" aria-label="Delete">⌫</button>
+    <button type="submit">Send</button>
+  </form>
+</section>
 
 <div id="sheet" hidden>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
@@ -246,6 +311,54 @@
   $("health").onclick = healthSheet;
   $("sheet-close").onclick = closeSheet;
   $("sheet").onclick = (event) => event.target === $("sheet") && closeSheet();
+
+  // Remote: a press sends once; holding an arrow or the volume keeps sending, like a real remote.
+  function sendKey(key) {
+    navigator.vibrate?.(5);
+    fetch(`/api/key/${key}`, { method: "POST" }).catch(() => (status.textContent = "TV not reachable"));
+  }
+
+  for (const button of document.querySelectorAll("[data-key]")) {
+    const key = button.dataset.key;
+    if (!("repeat" in button.dataset)) {
+      button.addEventListener("click", () => sendKey(key));
+      continue;
+    }
+    let delay = 0;
+    let interval = 0;
+    const stop = () => { clearTimeout(delay); clearInterval(interval); };
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      sendKey(key);
+      delay = setTimeout(() => (interval = setInterval(() => sendKey(key), 120)), 400);
+    });
+    for (const type of ["pointerup", "pointerleave", "pointercancel"]) button.addEventListener(type, stop);
+    button.addEventListener("contextmenu", (event) => event.preventDefault());
+  }
+
+  $("keyboard-toggle").onclick = () => {
+    $("keyboard").hidden = !$("keyboard").hidden;
+    if (!$("keyboard").hidden) $("keyboard-text").focus();
+  };
+  $("keyboard").onsubmit = (event) => {
+    event.preventDefault();
+    const text = $("keyboard-text").value;
+    if (!text) return;
+    fetch(`/api/text?value=${encodeURIComponent(text)}`, { method: "POST" });
+    $("keyboard-text").value = "";
+  };
+
+  function showTab(name) {
+    const remote = name === "remote";
+    $("lobby-view").hidden = remote;
+    $("remote-view").hidden = !remote;
+    $("tab-lobby").setAttribute("aria-selected", String(!remote));
+    $("tab-remote").setAttribute("aria-selected", String(remote));
+    try { localStorage.setItem("tab", name); } catch {}
+  }
+  $("tab-lobby").onclick = () => showTab("lobby");
+  $("tab-remote").onclick = () => showTab("remote");
+  try { if (localStorage.getItem("tab") === "remote") showTab("remote"); } catch {}
 
   refresh();
   setInterval(refresh, 5000);

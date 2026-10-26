@@ -12,6 +12,7 @@ import android.os.IBinder
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.ServerSocket
+import java.net.URLDecoder
 import java.net.Socket
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -22,6 +23,9 @@ import kotlin.concurrent.thread
 class RemoteService : Service() {
     private val controls by lazy { Controls(this) }
     private val tvInputs by lazy { getSystemService(TvInputManager::class.java) }
+
+    // Key presses get their own ADB connection, so a slow command (waking a device) never holds up the D-pad.
+    private val keys by lazy { LocalAdb(this) }
     private var server: ServerSocket? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -74,9 +78,16 @@ class RemoteService : Service() {
 
     private data class Response(val status: String, val type: String, val body: String)
 
-    private fun route(method: String?, path: String): Response {
+    private fun route(method: String?, target: String): Response {
+        val path = target.substringBefore('?')
+        val query = target.substringAfter('?', "").split('&').associate { it.substringBefore('=') to URLDecoder.decode(it.substringAfter('=', ""), "UTF-8") }
         val parts = path.trim('/').split('/')
         return when {
+            method == "POST" && parts.size == 3 && parts[1] == "key" -> {
+                val key = KEYS[parts[2]] ?: return Response("404 Not Found", JSON, "{}")
+                act { keys.run("input keyevent $key", onError = {}) }
+            }
+            method == "POST" && path == "/api/text" -> act { keys.run("input text ${shellText(query["value"].orEmpty())}", onError = {}) }
             method == "GET" && path == "/" -> Response(OK, "text/html; charset=utf-8", assets.open("remote.html").bufferedReader().use { it.readText() })
             method == "GET" && path == "/api/state" -> Response(OK, JSON, state().toString())
             method == "POST" && parts.size == 3 && parts[1] == "input" -> act { openInput(Lobby.inputs.first { it.hdmiPort == parts[2].toInt() }) }
@@ -131,6 +142,10 @@ class RemoteService : Service() {
         val accepted = runCatching { done.get(6, TimeUnit.SECONDS) }.getOrDefault(false)
         return Response(OK, JSON, JSONObject().put("ok", accepted).toString())
     }
+
+    // `input text` takes ASCII only and reads %s as a space; single quotes keep the shell out of it.
+    private fun shellText(text: String) =
+        "'" + text.filter { it in ' '..'~' }.replace(" ", "%s").replace("'", "'\\''") + "'"
 
     private fun act(action: () -> Unit): Response {
         action()
@@ -190,6 +205,24 @@ class RemoteService : Service() {
 
     companion object {
         const val PORT = 8888
+
+        // What the phone remote may press, and nothing else.
+        private val KEYS = mapOf(
+            "up" to "KEYCODE_DPAD_UP",
+            "down" to "KEYCODE_DPAD_DOWN",
+            "left" to "KEYCODE_DPAD_LEFT",
+            "right" to "KEYCODE_DPAD_RIGHT",
+            "ok" to "KEYCODE_DPAD_CENTER",
+            "back" to "KEYCODE_BACK",
+            "home" to "KEYCODE_HOME",
+            "volume-up" to "KEYCODE_VOLUME_UP",
+            "volume-down" to "KEYCODE_VOLUME_DOWN",
+            "mute" to "KEYCODE_VOLUME_MUTE",
+            "play-pause" to "KEYCODE_MEDIA_PLAY_PAUSE",
+            "power" to "KEYCODE_POWER",
+            "delete" to "KEYCODE_DEL",
+            "enter" to "KEYCODE_ENTER",
+        )
         private const val CHANNEL = "remote"
         private const val OK = "200 OK"
         private const val JSON = "application/json"
