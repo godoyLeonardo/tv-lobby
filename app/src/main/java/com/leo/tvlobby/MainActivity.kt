@@ -437,7 +437,10 @@ class MainActivity : Activity() {
                     MenuRow(
                         "Input",
                         inputs.map { input ->
-                            MenuOption(input.label, icon(input.icon), output.accent, active = status?.mode in input.modes) { useWiimInput(output, input) }
+                            MenuOption(input.label, icon(input.icon), output.accent, active = status?.mode in input.modes) {
+                                controls.useWiimInput(input, ::afterWiimCommand)
+                                renderOutput()
+                            }
                         },
                     ).takeIf { inputs.isNotEmpty() },
                     MenuRow(
@@ -458,13 +461,6 @@ class MainActivity : Activity() {
                 Menu(this, output.label, icon(output.icon), rows).show()
             }
         }
-    }
-
-    private fun useWiimInput(output: AudioOutput, input: WiiM.Input) {
-        if (input.modes.contains(WiiM.MODE_HDMI)) return select(output)
-        // TV sound goes to the TV speakers first: while it still goes to the WiiM over eARC, the TV pulls the WiiM back to HDMI.
-        Lobby.outputs.firstOrNull { it.wiimHost == null }?.let(::select)
-        handler.postDelayed({ wiim?.switchTo(input, ::afterWiimCommand) }, 2_000)
     }
 
     private fun afterWiimCommand(accepted: Boolean) {

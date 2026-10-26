@@ -3,12 +3,15 @@ package com.leo.tvlobby
 import android.content.Context
 import android.content.Intent
 import android.media.tv.TvContract
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 
 // What the lobby and the phone remote both do to the TV, the HDMI devices and the WiiM.
 class Controls(private val context: Context) {
     val localAdb = LocalAdb(context)
     val wiim = Lobby.outputs.firstNotNullOfOrNull { it.wiimHost }?.let(::WiiM)
+    private val handler = Handler(Looper.getMainLooper())
 
     val currentOutput get() = Settings.Global.getInt(context.contentResolver, Lobby.OUTPUT_SETTING, 1)
 
@@ -24,5 +27,15 @@ class Controls(private val context: Context) {
         }
         if (output.wiimHost != null) wiim?.useTvSound(onWiim)
         return written
+    }
+
+    fun useWiimInput(input: WiiM.Input, onDone: (Boolean) -> Unit) {
+        if (WiiM.MODE_HDMI in input.modes) {
+            Lobby.outputs.firstOrNull { it.wiimHost != null }?.let { selectOutput(it, onDone) }
+            return
+        }
+        // TV sound goes to the TV speakers first: while it still goes to the WiiM over eARC, the TV pulls the WiiM back to HDMI.
+        Lobby.outputs.firstOrNull { it.wiimHost == null }?.let { selectOutput(it) }
+        handler.postDelayed({ wiim?.switchTo(input, onDone) }, 2_000)
     }
 }
