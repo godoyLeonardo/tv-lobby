@@ -26,9 +26,11 @@ SIGNING="${TV_LOBBY_SIGNING:-$HOME/.config/tv-lobby/signing.properties}"
 [[ -f "$SIGNING" ]] || { echo "No signing key at $SIGNING (see Signing in the README)." >&2; exit 1; }
 [[ -f local.properties ]] || echo "sdk.dir=${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}" > local.properties
 ./gradlew -q assembleRelease
+# Only a first setup jumps to Home; an update leaves the TV on whatever is being watched.
+home_before=$(tv cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME | tail -1)
 adb -s "$TV" install -r app/build/outputs/apk/release/app-release.apk
 tv pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS
 for p in "${STOCK_HOMES[@]}"; do tv pm disable-user --user 0 "$p" >/dev/null; done
 tv cmd package set-home-activity "$PKG/.MainActivity"
-tv am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null
+[[ "$home_before" == "$PKG/"* ]] || tv am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null
 echo "TV Lobby is the home screen."
