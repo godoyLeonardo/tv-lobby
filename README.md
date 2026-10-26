@@ -23,6 +23,7 @@ ADB over the network must be on. Copy `lobby.properties.example` to `lobby.prope
 The script does more than install the APK:
 
 - It grants `WRITE_SECURE_SETTINGS`, which the audio switch needs.
+- It allows TCL's `AUTO_START` app op, off by default, without which TCL drops the boot and update broadcasts that start the phone remote.
 - It disables `launcherx` and `setupwraith` for user 0. Their HOME filters have system priorities that always win against a third-party launcher. `stock` turns them back on.
 
 If a firmware update re-enables them or revokes the permission, the app redoes both by itself through the TV's own ADB, at boot and whenever the lobby starts. That is why `./deploy.sh stock` uninstalls the app rather than only re-enabling them.
