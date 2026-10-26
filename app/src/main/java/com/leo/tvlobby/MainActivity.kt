@@ -149,7 +149,7 @@ class MainActivity : Activity() {
                     listOf(MenuRow(null, listOf(
                         MenuOption("Cancel", icon(R.drawable.icon_close), Palette.SURFACE) {},
                         MenuOption("Goodnight", icon(R.drawable.icon_power), Menu.DANGER) {
-                            localAdb.goodnight(onError = { toast("Couldn't turn things off: allow TV Lobby's debugging prompt") })
+                            controls.goodnight(onError = { toast("Couldn't turn things off: allow TV Lobby's debugging prompt") })
                         },
                     ))),
                 ).show()

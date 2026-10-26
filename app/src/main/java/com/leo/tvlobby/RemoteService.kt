@@ -104,7 +104,7 @@ class RemoteService : Service() {
             method == "POST" && parts.size == 3 && parts[1] == "wiim" -> wiimAction(parts[2], null)
             method == "POST" && parts.size == 3 && parts[1] == "output" -> act { controls.selectOutput(Lobby.outputs.first { it.tclType == parts[2].toInt() }) }
             method == "POST" && path == "/api/lobby" -> act { controls.localAdb.run("am start -a ${Intent.ACTION_MAIN} -c ${Intent.CATEGORY_HOME}", onError = {}) }
-            method == "POST" && path == "/api/goodnight" -> act { controls.localAdb.goodnight(onError = {}) }
+            method == "POST" && path == "/api/goodnight" -> act { controls.goodnight(onError = {}) }
             else -> Response("404 Not Found", JSON, "{}")
         }
     }

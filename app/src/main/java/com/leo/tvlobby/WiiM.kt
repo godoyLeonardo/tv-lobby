@@ -54,6 +54,8 @@ class WiiM(private val host: String) {
 
     fun next(onDone: (Boolean) -> Unit) = command("setPlayerCmd:next", onDone)
 
+    fun stop(onDone: (Boolean) -> Unit) = command("setPlayerCmd:stop", onDone)
+
     fun previous(onDone: (Boolean) -> Unit) = command("setPlayerCmd:prev", onDone)
 
     @Volatile

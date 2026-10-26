@@ -18,7 +18,7 @@ A home screen for a TCL Google TV (Android 14) that replaces the Google TV launc
 - **Sound:** TV speakers or the WiiM Ultra on HDMI eARC. The active output is highlighted and follows changes made from the TCL menu.
 - **WiiM:** its tile shows the volume, or the song, artist and service over the album art while the WiiM plays its own source (a cast, Spotify, Bluetooth…). The lobby's background takes the cover's colour. Meanwhile the TV remote's volume and mute keys set the WiiM's volume directly, on any screen, with a small indicator; on TV sound they work over CEC as usual. If the TV sends its sound to the WiiM while the WiiM is elsewhere, the tile turns amber. Hold OK on it for the WiiM's menu: playback, its inputs (TV and Phono first), two volume presets, mute, **Reset Spotify** (for when Spotify stops listing the WiiM) and **Restart WiiM** (for when its screen or knob stop responding).
 - **Apps:** pinned apps first, then every other TV app. Hold OK on an app to pin it, move it to the front or hide it. Hidden apps wait in a "Hidden apps" tile at the end of the row. The choices are saved on the TV.
-- **Goodnight:** after a confirmation, puts every CEC device to sleep (consoles, Apple TV, WiiM), then the TV.
+- **Goodnight:** after a confirmation, stops whatever the WiiM is playing (a cast, Spotify…), then puts every CEC device to sleep (consoles, Apple TV, WiiM) and the TV.
 - **Settings:** opens the TV settings. Hold OK on it for **Lobby status**, which checks each part (Home, the sound permission, the TV's ADB, the volume keys, HDMI-CEC, the WiiM, Spotify Connect, the phone remote) and says what to do when one fails.
 - Home focuses the tile you last opened.
 

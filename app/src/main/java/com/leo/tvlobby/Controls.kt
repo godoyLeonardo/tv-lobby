@@ -26,6 +26,13 @@ class Controls(private val context: Context) {
         return written
     }
 
+    // CEC standby doesn't end what the WiiM streams on its own (a cast, Spotify), so it's stopped first;
+    // then every CEC device and the TV go to sleep, whether or not the WiiM answered.
+    fun goodnight(onError: (Throwable) -> Unit) {
+        val wiim = wiim ?: return localAdb.goodnight(onError)
+        wiim.stop { localAdb.goodnight(onError) }
+    }
+
     fun useWiimInput(input: WiiM.Input, onDone: (Boolean) -> Unit) {
         if (WiiM.MODE_HDMI in input.modes) {
             Lobby.outputs.firstOrNull { it.wiimHost != null }?.let { selectOutput(it, onDone) }
