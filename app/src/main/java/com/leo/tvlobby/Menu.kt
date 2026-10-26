@@ -11,6 +11,7 @@ import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
 class MenuOption(
@@ -42,7 +43,7 @@ class Menu(context: Context, title: CharSequence, icon: Drawable, rows: List<Men
             })
         }
         val firstTiles = mutableListOf<View>()
-        setContentView(LinearLayout(context).apply {
+        val card = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
                 cornerRadius = context.dp(24).toFloat()
@@ -69,6 +70,13 @@ class Menu(context: Context, title: CharSequence, icon: Drawable, rows: List<Men
                     addView(tiles)
                 })
             }
+        }
+        // A long menu (the WiiM's, while music plays) is taller than the screen: it scrolls with the focus.
+        setContentView(ScrollView(context).apply {
+            isVerticalScrollBarEnabled = false
+            clipToPadding = false
+            setPadding(0, context.dp(24), 0, context.dp(24))
+            addView(card)
         })
         window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window?.setDimAmount(0.6f)

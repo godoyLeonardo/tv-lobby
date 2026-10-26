@@ -18,8 +18,11 @@ class HealthDialog(context: Context, private val controls: Controls) :
 
     private class Row(val icon: ImageView, val detail: TextView)
 
+    private var rows = 0
+
     private val handler = Handler(Looper.getMainLooper())
-    private val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+    // Two columns: the checks don't fit the TV's height as one list.
+    private val columns = List(2) { LinearLayout(context).apply { orientation = LinearLayout.VERTICAL } }
 
     init {
         setContentView(LinearLayout(context).apply {
@@ -36,7 +39,14 @@ class HealthDialog(context: Context, private val controls: Controls) :
                 setTextColor(Palette.TEXT)
                 setPadding(0, 0, 0, context.dp(8))
             })
-            addView(list, LinearLayout.LayoutParams(context.dp(700), LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                columns.forEachIndexed { index, column ->
+                    addView(column, LinearLayout.LayoutParams(context.dp(400), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        if (index == 0) marginEnd = context.dp(32)
+                    })
+                }
+            })
         })
         window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window?.setDimAmount(0.6f)
@@ -67,8 +77,10 @@ class HealthDialog(context: Context, private val controls: Controls) :
             textSize = 15f
             typeface = Fonts.manrope(context, 500)
             setTextColor(Palette.MUTED)
+            maxLines = 2
         }
-        list.addView(LinearLayout(context).apply {
+        val column = columns[rows++ % columns.size]
+        column.addView(LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, context.dp(10), 0, context.dp(10))
