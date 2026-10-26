@@ -93,9 +93,9 @@ class WiiM(private val host: String) {
         // plm_support bits, from Home Assistant's LinkPlay library (InputMode), with the switchmode names it sends.
         private val INPUTS = listOf(
             1024L to Input("TV", "HDMI", R.drawable.icon_tv, setOf(MODE_HDMI)),
+            65536L to Input("Phono", "phono", R.drawable.icon_album, setOf(54)),
             4L to Input("Bluetooth", "bluetooth", R.drawable.icon_bluetooth, setOf(41)),
             2L to Input("Line in", "line-in", R.drawable.icon_cable, setOf(40)),
-            65536L to Input("Phono", "phono", R.drawable.icon_album, setOf(54)),
             16L to Input("Optical", "optical", R.drawable.icon_settings_input_component, setOf(43)),
         )
         private val WIFI = Input("Wi-Fi", "wifi", R.drawable.icon_wifi, (1..3).toSet() + (10..39))
