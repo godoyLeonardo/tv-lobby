@@ -95,8 +95,23 @@ class MainActivity : Activity() {
 
     private fun header(): View = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.BOTTOM
+        gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(8), 0, dp(8), dp(4))
+        clipChildren = false
+        addView(clock(), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        addView(Tile(context, 148, 48, Palette.SURFACE).apply {
+            title.text = "Settings"
+            title.textSize = 15f
+            detail.visibility = View.GONE
+            showMark(getDrawable(R.drawable.icon_settings)!!, 22)
+            setOnClickListener { launch(Intent(Settings.ACTION_SETTINGS)) }
+            (layoutParams as LinearLayout.LayoutParams).marginEnd = 0
+        })
+    }
+
+    private fun clock(): View = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.BOTTOM
         addView(TextClock(context).apply {
             format24Hour = "HH:mm"
             format12Hour = "h:mm"
