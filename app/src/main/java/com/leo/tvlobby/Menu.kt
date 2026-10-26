@@ -57,6 +57,7 @@ class Menu(context: Context, title: String, icon: Int, options: List<MenuOption>
         })
         window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window?.setDimAmount(0.6f)
+        setOnShowListener { row.getChildAt(0)?.requestFocus() }
     }
 
     private fun tile(option: MenuOption) = Tile(context, 200, 72, option.accent).apply {
