@@ -5,8 +5,6 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ResolveInfo
 import android.database.ContentObserver
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.LayerDrawable
 import android.media.tv.TvContract
 import android.media.tv.TvInputManager
 import android.os.Bundle
@@ -15,6 +13,7 @@ import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -26,6 +25,7 @@ class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val tvInputs by lazy { getSystemService(TvInputManager::class.java) }
     private val localAdb by lazy { LocalAdb(this) }
+    private val aurora by lazy { AuroraView(this) }
     private val inputTiles = linkedMapOf<String, Tile>()
     private val outputTiles = linkedMapOf<AudioOutput, Tile>()
     private lateinit var appsRow: LinearLayout
@@ -49,9 +49,15 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        aurora.resume()
         renderInputs()
         renderOutput()
         renderApps()
+    }
+
+    override fun onPause() {
+        aurora.pause()
+        super.onPause()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -88,25 +94,18 @@ class MainActivity : Activity() {
                 addView(appsRow)
             })
         }
-        return ScrollView(this).apply {
-            isVerticalScrollBarEnabled = false
-            isFillViewport = true
-            background = backdrop()
-            addView(column)
+        return FrameLayout(this).apply {
+            addView(aurora)
+            addView(ScrollView(context).apply {
+                isVerticalScrollBarEnabled = false
+                isFillViewport = true
+                addView(column)
+            })
+            viewTreeObserver.addOnGlobalFocusChangeListener { _, focused ->
+                aurora.glowWith((focused as? Tile)?.accent?.takeIf { it != Palette.SURFACE })
+            }
         }
     }
-
-    private fun backdrop() = LayerDrawable(
-        arrayOf(
-            GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(0xFF161A24.toInt(), Palette.BACKGROUND)),
-            GradientDrawable().apply {
-                gradientType = GradientDrawable.RADIAL_GRADIENT
-                gradientRadius = resources.displayMetrics.widthPixels * 0.6f
-                setGradientCenter(0.1f, 0f)
-                colors = intArrayOf(0x402C4A8C, 0x00000000)
-            },
-        )
-    )
 
     private fun header(): View = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL

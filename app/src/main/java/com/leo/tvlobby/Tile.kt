@@ -31,7 +31,7 @@ fun blend(from: Int, to: Int, ratio: Float): Int {
     return Color.rgb(mix(Color.red(from), Color.red(to)), mix(Color.green(from), Color.green(to)), mix(Color.blue(from), Color.blue(to)))
 }
 
-class Tile(context: Context, widthDp: Int, heightDp: Int, private val accent: Int) : FrameLayout(context) {
+class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : FrameLayout(context) {
     val title = TextView(context).apply {
         textSize = 19f
         setTextColor(Palette.TEXT)
