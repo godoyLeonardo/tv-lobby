@@ -6,9 +6,13 @@ import android.os.Parcel
 // Runs as the shell user through app_process (see LocalAdb), which holds HDMI_CEC.
 // `service call` can't be used: TCL wraps hdmi_control in its own interface, so the shell stamps the wrong token.
 object CecTool {
-    // IHdmiControlService.sendStandby(deviceType, deviceId) on this TV's framework (Android 14).
-    private const val TRANSACTION_SEND_STANDBY = 37
     private const val DEVICE_TYPE_TV = 0
+
+    // Read from the TV's framework rather than hardcoded: the AIDL numbering can shift with a firmware update.
+    private val sendStandbyTransaction: Int
+        get() = Class.forName("android.hardware.hdmi.IHdmiControlService\$Stub").getDeclaredField("TRANSACTION_sendStandby")
+            .apply { isAccessible = true }
+            .getInt(null)
 
     @JvmStatic
     fun main(args: Array<String>) {
@@ -27,7 +31,7 @@ object CecTool {
             data.writeInterfaceToken("android.hardware.hdmi.IHdmiControlService")
             data.writeInt(DEVICE_TYPE_TV)
             data.writeInt(logicalAddress)
-            hdmi.transact(TRANSACTION_SEND_STANDBY, data, reply, 0)
+            hdmi.transact(sendStandbyTransaction, data, reply, 0)
             reply.readException()
         } finally {
             data.recycle()
