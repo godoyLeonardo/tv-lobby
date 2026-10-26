@@ -32,6 +32,9 @@ class MainActivity : Activity() {
     private lateinit var appsRow: LinearLayout
     private var shownApps = emptyList<String>()
     private var cecPower = emptyMap<Int, Int>()
+    private val prefs by lazy { getSharedPreferences("lobby", MODE_PRIVATE) }
+    private val tilesByKey = mutableMapOf<String, Tile>()
+    private var focusLastUsed = true
     private val refreshCecPower = Runnable { refreshCecPower() }
 
     private val outputObserver = object : ContentObserver(handler) {
@@ -47,7 +50,6 @@ class MainActivity : Activity() {
         setContentView(layout())
         contentResolver.registerContentObserver(Settings.Global.getUriFor(Lobby.OUTPUT_SETTING), false, outputObserver)
         tvInputs?.registerCallback(inputCallback, handler)
-        inputTiles.values.first().requestFocus()
         HomeGuard.ensure(this)
     }
 
@@ -58,6 +60,10 @@ class MainActivity : Activity() {
         refreshCecPower()
         renderOutput()
         renderApps()
+        if (focusLastUsed) {
+            focusLastUsed = false
+            (tilesByKey[prefs.getString(LAST_USED, null)] ?: inputTiles.values.first()).requestFocus()
+        }
     }
 
     override fun onPause() {
@@ -68,7 +74,7 @@ class MainActivity : Activity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        inputTiles.values.first().requestFocus()
+        focusLastUsed = true
     }
 
     override fun onDestroy() {
@@ -181,9 +187,11 @@ class MainActivity : Activity() {
             true
         }
         inputTiles[input] = this
+        tilesByKey["input:${input.hdmiPort}"] = this
     }
 
     private fun open(input: Input) {
+        rememberLastUsed("input:${input.hdmiPort}")
         val channel = TvContract.buildChannelUriForPassthroughInput(input.inputId)
         launch(Intent(Intent.ACTION_VIEW).setDataAndType(channel, TvContract.Channels.CONTENT_ITEM_TYPE))
         localAdb.wakeHdmiDevice(
@@ -221,8 +229,10 @@ class MainActivity : Activity() {
             if (banner != null) showImage(banner) else showIcon(activity.loadIcon(packageManager), app.loadLabel(packageManager))
             contentDescription = app.loadLabel(packageManager)
             setOnClickListener {
+                rememberLastUsed(appKey(app))
                 launch(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER).setClassName(activity.packageName, activity.name))
             }
+            tilesByKey[appKey(app)] = this
         }
     }
 
@@ -274,6 +284,7 @@ class MainActivity : Activity() {
         if (keys == shownApps) return
         shownApps = keys
         appsRow.removeAllViews()
+        tilesByKey.keys.removeAll { it.startsWith("app:") }
         apps.forEach { appsRow.addView(appTile(it)) }
     }
 
@@ -296,8 +307,14 @@ class MainActivity : Activity() {
         }
     }
 
-    // HdmiControlManager.POWER_STATUS_* (system API, so not visible to apps).
+    private fun appKey(app: ResolveInfo) = "app:${app.activityInfo.packageName}/${app.activityInfo.name}"
+
+    private fun rememberLastUsed(key: String) = prefs.edit().putString(LAST_USED, key).apply()
+
     private companion object {
+        const val LAST_USED = "last_used_tile"
+
+        // HdmiControlManager.POWER_STATUS_* (system API, so not visible to apps).
         const val CEC_POWER_ON = 0
         const val CEC_POWER_STANDBY = 1
         const val CEC_POWER_TRANSIENT_TO_ON = 2
