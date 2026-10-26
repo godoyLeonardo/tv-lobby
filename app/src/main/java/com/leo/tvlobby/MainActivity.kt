@@ -7,7 +7,6 @@ import android.content.pm.ResolveInfo
 import android.database.ContentObserver
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
-import android.media.tv.TvContract
 import android.media.tv.TvInputManager
 import android.os.Bundle
 import android.os.Handler
@@ -27,14 +26,15 @@ import android.widget.Toast
 class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val tvInputs by lazy { getSystemService(TvInputManager::class.java) }
-    private val localAdb by lazy { LocalAdb(this) }
+    private val controls by lazy { Controls(this) }
+    private val localAdb get() = controls.localAdb
     private val aurora by lazy { AuroraView(this) }
     private val inputTiles = linkedMapOf<Input, Tile>()
     private val outputTiles = linkedMapOf<AudioOutput, Tile>()
     private lateinit var appsRow: LinearLayout
     private var shownApps = emptyList<String>()
     private var cecPower = emptyMap<Int, Int>()
-    private val wiim = Lobby.outputs.firstNotNullOfOrNull { it.wiimHost }?.let(::WiiM)
+    private val wiim get() = controls.wiim
     private var wiimStatus: WiiM.Status? = null
     private var wiimTrack: WiiM.Track? = null
     private var wiimArt: Pair<String, Bitmap>? = null
@@ -222,8 +222,7 @@ class MainActivity : Activity() {
 
     private fun open(input: Input) {
         rememberLastUsed("input:${input.hdmiPort}")
-        val channel = TvContract.buildChannelUriForPassthroughInput(input.inputId)
-        launch(Intent(Intent.ACTION_VIEW).setDataAndType(channel, TvContract.Channels.CONTENT_ITEM_TYPE))
+        launch(controls.passthroughIntent(input))
         localAdb.wakeHdmiDevice(
             input.hdmiPort,
             onError = { toast("Couldn't wake ${input.label}: allow TV Lobby's debugging prompt") },
@@ -351,7 +350,7 @@ class MainActivity : Activity() {
     }
 
     private fun renderOutput() {
-        val current = Settings.Global.getInt(contentResolver, Lobby.OUTPUT_SETTING, 1)
+        val current = controls.currentOutput
         outputTiles.forEach { (output, tile) ->
             tile.active = output.tclType == current
             val streamer = wiimStatus?.takeIf { output.wiimHost != null }
@@ -391,13 +390,8 @@ class MainActivity : Activity() {
     private fun pinRank(pinned: List<String>, pkg: String) = pinned.indexOf(pkg).let { if (it < 0) Int.MAX_VALUE else it }
 
     private fun select(output: AudioOutput) {
-        try {
-            Settings.Global.putInt(contentResolver, Lobby.OUTPUT_SETTING, output.tclType)
-        } catch (e: SecurityException) {
-            Toast.makeText(this, "Missing WRITE_SECURE_SETTINGS: run ./deploy.sh", Toast.LENGTH_LONG).show()
-        }
+        if (!controls.selectOutput(output, ::afterWiimCommand)) toast("Missing WRITE_SECURE_SETTINGS: run ./deploy.sh")
         renderOutput()
-        if (output.wiimHost != null) wiim?.useTvSound(::afterWiimCommand)
     }
 
     private fun loadWiimArt(url: String?) {
