@@ -7,7 +7,7 @@ A home screen for the living-room TCL Google TV (Android 14). It replaces the Go
 - **Apps:** pinned apps first, then every other installed TV app. Hold OK (or press Menu) on an app to pin it, move it to the front or hide it; hidden apps wait in a "Hidden apps" tile at the end of the row. These choices are saved on the TV.
 - **Goodnight:** after a confirmation, puts every HDMI-CEC device to sleep (consoles, Apple TV, WiiM), then the TV.
 - **Settings:** a button next to the clock opens the TV settings. Hold OK on it for **Lobby status**, which checks Home, the sound permission, the TV's ADB, HDMI-CEC, the WiiM and the phone remote, and says what to do when one fails.
-- **Phone remote:** open `http://<TV address>:8888` on a phone on the same network for inputs, sound, Lobby and Goodnight, even while the TV shows an HDMI input. It has no login: anyone on the home network can use it.
+- **Phone remote:** open `http://<TV address>:8888` on a phone on the same network for inputs, sound, Lobby and Goodnight, even while the TV shows an HDMI input. Hold a card marked ••• for the same menus as on the TV (Open / Turn off, the WiiM menu); Status runs the lobby's checks. It has no login: anyone on the home network can use it.
 
 ![TV Lobby](screenshot.png)
 

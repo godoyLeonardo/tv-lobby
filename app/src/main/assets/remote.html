@@ -46,7 +46,28 @@
   .output.active { outline: 2px solid var(--on); outline-offset: -2px; }
   .output .art { float: right; width: 44px; height: 44px; margin: -4px -4px 0 8px; border-radius: 8px; object-fit: cover; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row #health { grid-column: span 2; min-height: 60px; }
   .danger { background: color-mix(in srgb, var(--danger) 22%, var(--surface)); }
+  button { position: relative; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+  .more { position: absolute; top: 8px; right: 12px; font-size: 14px; letter-spacing: 1px; color: rgba(255,255,255,.55); }
+  .hint { margin: 18px 2px 0; color: var(--muted); font-size: 12px; }
+
+  #sheet { position: fixed; inset: 0; display: flex; align-items: flex-end; background: rgba(0,0,0,.55); z-index: 10; }
+  #sheet[hidden] { display: none; }
+  .sheet-card {
+    width: 100%; max-height: 85vh; overflow-y: auto; background: #161922;
+    border-radius: 22px 22px 0 0; padding: 18px 16px max(16px, env(safe-area-inset-bottom));
+    animation: rise .18s ease-out;
+  }
+  @keyframes rise { from { transform: translateY(24px); opacity: 0; } }
+  .sheet-card h3 { margin: 4px 2px 6px; font-size: 20px; }
+  .sheet-card button { min-height: 56px; padding: 12px 14px; }
+  .sheet-card .current { outline: 2px solid var(--on); outline-offset: -2px; }
+  #sheet-close { width: 100%; margin-top: 16px; text-align: center; min-height: 52px; }
+  .status-row { display: flex; gap: 12px; align-items: flex-start; padding: 10px 2px; }
+  .status-row .mark { width: 20px; text-align: center; }
+  .status-row .ok { color: var(--on); }
+  .status-row .bad { color: var(--danger); }
 </style>
 </head>
 <body>
@@ -62,20 +83,115 @@
 <div class="row">
   <button id="lobby"><span class="name">Lobby</span><span class="detail">Back to the home screen</span></button>
   <button id="goodnight" class="danger"><span class="name">Goodnight</span><span class="detail">Everything off</span></button>
+  <button id="health"><span class="name">Status</span><span class="detail">Check every part</span></button>
+</div>
+
+<p class="hint">Hold a card with ••• for more.</p>
+
+<div id="sheet" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <h3 id="sheet-title"></h3>
+    <div id="sheet-body"></div>
+    <button id="sheet-close">Close</button>
+  </div>
 </div>
 
 <script>
   const $ = (id) => document.getElementById(id);
   const status = $("status");
 
+  let state = null;
+
   async function post(path) {
     status.textContent = "Sending…";
     try {
-      await fetch(path, { method: "POST" });
+      const response = await fetch(path, { method: "POST" });
+      const result = await response.json().catch(() => ({}));
+      status.textContent = result.ok === false ? "Not accepted" : "Sent";
       setTimeout(refresh, 1500);
     } catch {
       status.textContent = "TV not reachable";
     }
+  }
+
+  // Tap runs onTap; holding half a second runs onHold instead (and the tap is dropped).
+  function pressable(button, onTap, onHold) {
+    let timer = 0;
+    let held = false;
+    button.addEventListener("pointerdown", () => {
+      held = false;
+      timer = setTimeout(() => {
+        held = true;
+        navigator.vibrate?.(12);
+        onHold();
+      }, 500);
+    });
+    for (const type of ["pointerup", "pointerleave", "pointercancel"]) button.addEventListener(type, () => clearTimeout(timer));
+    button.addEventListener("contextmenu", (event) => event.preventDefault());
+    button.addEventListener("click", () => held ? (held = false) : onTap());
+    button.append(el("span", { className: "more", textContent: "•••", ariaHidden: "true" }));
+  }
+
+  // rows: [{ label, options: [{ label, detail, current, danger, action }] }]
+  function openSheet(title, rows) {
+    $("sheet-title").textContent = title;
+    $("sheet-body").replaceChildren(...rows.filter((row) => row.options.length).map((row) => [
+      row.label ? el("h2", { textContent: row.label }) : "",
+      el("div", { className: "grid" }, row.options.map((option) => el("button", {
+        className: [option.current && "current", option.danger && "danger"].filter(Boolean).join(" "),
+        onclick: () => { closeSheet(); option.action(); },
+      }, [
+        el("span", { className: "name", textContent: option.label }),
+        option.detail ? el("span", { className: "detail", textContent: option.detail }) : "",
+      ]))),
+    ]).flat());
+    $("sheet").hidden = false;
+  }
+
+  function closeSheet() {
+    $("sheet").hidden = true;
+  }
+
+  function inputSheet(input) {
+    openSheet(input.label, [{ options: [
+      { label: "Open", detail: "Switch and wake", action: () => post(`/api/input/${input.port}`) },
+      { label: "Turn off", detail: "HDMI standby", danger: true, action: () => post(`/api/input/${input.port}/off`) },
+    ] }]);
+  }
+
+  async function wiimSheet(output) {
+    const wiim = state?.wiim;
+    status.textContent = "Loading…";
+    const inputs = await fetch("/api/wiim/inputs").then((r) => r.json()).catch(() => []);
+    status.textContent = "";
+    const modes = { HDMI: [49], phono: [54], bluetooth: [41], "line-in": [40], optical: [43] };
+    const isCurrent = (command) => wiim && (command === "wifi" ? wiim.ownSource && !Object.values(modes).flat().includes(wiim.mode) : (modes[command] || []).includes(wiim.mode));
+    openSheet(output.label, [
+      { label: "Now playing", options: wiim?.ownSource ? [
+        { label: "Previous", action: () => post("/api/wiim/previous") },
+        { label: wiim.playing ? "Pause" : "Play", action: () => post("/api/wiim/toggle") },
+        { label: "Next", action: () => post("/api/wiim/next") },
+      ] : [] },
+      { label: "Input", options: inputs.map((input) => ({ label: input.label, current: isCurrent(input.command), action: () => post(`/api/wiim/input/${input.command}`) })) },
+      { label: "Volume", options: [
+        ...(wiim?.presets || []).map((preset) => ({ label: `${preset.label} · ${preset.volume}`, current: wiim.volume === preset.volume, action: () => post(`/api/wiim/volume/${preset.volume}`) })),
+        { label: wiim?.muted ? "Unmute" : "Mute", action: () => post(`/api/wiim/mute/${wiim?.muted ? 0 : 1}`) },
+      ] },
+      { label: "Device", options: [
+        { label: "Restart WiiM", detail: "When its screen or knob stop responding", danger: true, action: () => confirm("Restart the WiiM?") && post("/api/wiim/restart") },
+      ] },
+    ]);
+  }
+
+  async function healthSheet() {
+    $("sheet-title").textContent = "Status";
+    $("sheet-body").replaceChildren(el("p", { className: "hint", textContent: "Checking…" }));
+    $("sheet").hidden = false;
+    const checks = await fetch("/api/health").then((r) => r.json()).catch(() => [{ name: "TV", ok: false, detail: "Not reachable" }]);
+    $("sheet-body").replaceChildren(...checks.map((check) => el("div", { className: "status-row" }, [
+      el("span", { className: `mark ${check.ok ? "ok" : "bad"}`, textContent: check.ok ? "✓" : "✕" }),
+      el("div", {}, [el("span", { className: "name", textContent: check.name }), el("span", { className: "detail", textContent: check.detail })]),
+    ])));
   }
 
   function el(tag, props = {}, children = []) {
@@ -86,11 +202,12 @@
 
   function render(state) {
     $("inputs").replaceChildren(...state.inputs.map((input) => {
-      const button = el("button", { onclick: () => post(`/api/input/${input.port}`) }, [
+      const button = el("button", {}, [
         el("span", { className: "name", textContent: input.label }),
         el("span", { className: `detail dot ${input.power}`, textContent: input.power[0].toUpperCase() + input.power.slice(1) }),
       ]);
       button.style.background = `linear-gradient(135deg, ${input.colors.join(", ")})`;
+      pressable(button, () => post(`/api/input/${input.port}`), () => inputSheet(input));
       return button;
     }));
 
@@ -105,14 +222,18 @@
         el("span", { className: `detail ${output.active ? "dot on" : ""}`, textContent: detail }),
       ];
       if (isWiim && wiim.art) children.unshift(el("img", { className: "art", src: wiim.art, alt: "" }));
-      return el("button", { className: `output ${output.active ? "active" : ""}`, onclick: () => post(`/api/output/${output.type}`) }, children);
+      const button = el("button", { className: `output ${output.active ? "active" : ""}` }, children);
+      if (isWiim) pressable(button, () => post(`/api/output/${output.type}`), () => wiimSheet(output));
+      else button.onclick = () => post(`/api/output/${output.type}`);
+      return button;
     }));
   }
 
   async function refresh() {
     try {
       const response = await fetch("/api/state");
-      render(await response.json());
+      state = await response.json();
+      render(state);
       status.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     } catch {
       status.textContent = "TV not reachable";
@@ -121,6 +242,9 @@
 
   $("lobby").onclick = () => post("/api/lobby");
   $("goodnight").onclick = () => confirm("Turn the TV and every device off?") && post("/api/goodnight");
+  $("health").onclick = healthSheet;
+  $("sheet-close").onclick = closeSheet;
+  $("sheet").onclick = (event) => event.target === $("sheet") && closeSheet();
 
   refresh();
   setInterval(refresh, 5000);

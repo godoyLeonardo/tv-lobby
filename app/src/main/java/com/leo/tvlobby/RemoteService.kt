@@ -80,11 +80,55 @@ class RemoteService : Service() {
             method == "GET" && path == "/" -> Response(OK, "text/html; charset=utf-8", assets.open("remote.html").bufferedReader().use { it.readText() })
             method == "GET" && path == "/api/state" -> Response(OK, JSON, state().toString())
             method == "POST" && parts.size == 3 && parts[1] == "input" -> act { openInput(Lobby.inputs.first { it.hdmiPort == parts[2].toInt() }) }
+            method == "POST" && parts.size == 4 && parts[1] == "input" && parts[3] == "off" ->
+                act { controls.localAdb.standbyHdmiDevice(parts[2].toInt(), onError = {}, onAbsent = {}) }
+            method == "GET" && path == "/api/wiim/inputs" -> Response(OK, JSON, wiimInputs().toString())
+            method == "GET" && path == "/api/health" -> Response(OK, JSON, health().toString())
+            method == "POST" && parts.size == 4 && parts[1] == "wiim" -> wiimAction(parts[2], parts[3])
+            method == "POST" && parts.size == 3 && parts[1] == "wiim" -> wiimAction(parts[2], null)
             method == "POST" && parts.size == 3 && parts[1] == "output" -> act { controls.selectOutput(Lobby.outputs.first { it.tclType == parts[2].toInt() }) }
             method == "POST" && path == "/api/lobby" -> act { controls.localAdb.run("am start -a ${Intent.ACTION_MAIN} -c ${Intent.CATEGORY_HOME}", onError = {}) }
             method == "POST" && path == "/api/goodnight" -> act { controls.localAdb.goodnight(onError = {}) }
             else -> Response("404 Not Found", JSON, "{}")
         }
+    }
+
+    private fun health(): JSONArray {
+        val checks = Health(this, controls).checks
+        val results = checks.map { check -> CompletableFuture<Health.Result>().also { check.run(it::complete) } }
+        return JSONArray(checks.zip(results).map { (check, future) ->
+            val result = runCatching { future.get(6, TimeUnit.SECONDS) }.getOrNull()
+            JSONObject().put("name", check.name).put("ok", result?.ok == true).put("detail", result?.detail ?: "No answer")
+        })
+    }
+
+    private fun wiimInputs(): JSONArray {
+        val wiim = controls.wiim ?: return JSONArray()
+        val inputs = CompletableFuture<List<WiiM.Input>>()
+        wiim.inputs(inputs::complete)
+        return JSONArray(runCatching { inputs.get(4, TimeUnit.SECONDS) }.getOrDefault(emptyList()).map { JSONObject().put("label", it.label).put("command", it.command) })
+    }
+
+    private fun wiimAction(action: String, value: String?): Response {
+        val wiim = controls.wiim ?: return Response("404 Not Found", JSON, "{}")
+        val done = CompletableFuture<Boolean>()
+        when (action) {
+            "input" -> {
+                val inputs = CompletableFuture<List<WiiM.Input>>()
+                wiim.inputs(inputs::complete)
+                val input = inputs.get(4, TimeUnit.SECONDS).first { it.command == value }
+                controls.useWiimInput(input, done::complete)
+            }
+            "volume" -> wiim.setVolume(value!!.toInt().coerceIn(0, 100), done::complete)
+            "mute" -> wiim.setMuted(value == "1", done::complete)
+            "previous" -> wiim.previous(done::complete)
+            "toggle" -> wiim.togglePlayback(done::complete)
+            "next" -> wiim.next(done::complete)
+            "restart" -> wiim.restart(done::complete)
+            else -> return Response("404 Not Found", JSON, "{}")
+        }
+        val accepted = runCatching { done.get(6, TimeUnit.SECONDS) }.getOrDefault(false)
+        return Response(OK, JSON, JSONObject().put("ok", accepted).toString())
     }
 
     private fun act(action: () -> Unit): Response {
@@ -127,6 +171,9 @@ class RemoteService : Service() {
                     .put("title", track?.title.orEmpty())
                     .put("artist", track?.artist.orEmpty())
                     .put("art", track?.artUrl.orEmpty())
+                    .put("ownSource", it.ownSource)
+                    .put("mode", it.mode)
+                    .put("presets", JSONArray(Lobby.wiimVolumePresets.map { (label, volume) -> JSONObject().put("label", label).put("volume", volume) }))
             })
     }
 
