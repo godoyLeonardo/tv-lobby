@@ -66,17 +66,21 @@ class RemoteService : Service() {
         val reader = client.getInputStream().bufferedReader()
         val request = reader.readLine()?.split(" ") ?: return
         while (reader.readLine()?.isNotEmpty() == true) Unit
-        val (status, type, body) = runCatching { route(request.getOrNull(0), request.getOrNull(1).orEmpty()) }
+        val response = runCatching { route(request.getOrNull(0), request.getOrNull(1).orEmpty()) }
             .getOrElse { Response("500 Internal Server Error", JSON, JSONObject().put("error", it.toString()).toString()) }
-        val bytes = body.toByteArray()
         client.getOutputStream().run {
-            write("HTTP/1.1 $status\r\nContent-Type: $type\r\nContent-Length: ${bytes.size}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n".toByteArray())
-            write(bytes)
+            write(
+                ("HTTP/1.1 ${response.status}\r\nContent-Type: ${response.type}\r\nContent-Length: ${response.body.size}\r\n" +
+                    "Cache-Control: no-store\r\nConnection: close\r\n\r\n").toByteArray(),
+            )
+            write(response.body)
             flush()
         }
     }
 
-    private data class Response(val status: String, val type: String, val body: String)
+    private class Response(val status: String, val type: String, val body: ByteArray) {
+        constructor(status: String, type: String, body: String) : this(status, type, body.toByteArray())
+    }
 
     private fun route(method: String?, target: String): Response {
         val path = target.substringBefore('?')
@@ -88,7 +92,8 @@ class RemoteService : Service() {
                 act { keys.run("input keyevent $key", onError = {}) }
             }
             method == "POST" && path == "/api/text" -> act { keys.run("input text ${shellText(query["value"].orEmpty())}", onError = {}) }
-            method == "GET" && path == "/" -> Response(OK, "text/html; charset=utf-8", assets.open("remote.html").bufferedReader().use { it.readText() })
+            method == "GET" && path == "/" -> page("index.html")
+            method == "GET" && path.removePrefix("/") in PAGES -> page(path.removePrefix("/"))
             method == "GET" && path == "/api/state" -> Response(OK, JSON, state().toString())
             method == "POST" && parts.size == 3 && parts[1] == "input" -> act { openInput(Lobby.inputs.first { it.hdmiPort == parts[2].toInt() }) }
             method == "POST" && parts.size == 4 && parts[1] == "input" && parts[3] == "off" ->
@@ -146,6 +151,8 @@ class RemoteService : Service() {
     // `input text` takes ASCII only and reads %s as a space; single quotes keep the shell out of it.
     private fun shellText(text: String) =
         "'" + text.filter { it in ' '..'~' }.replace(" ", "%s").replace("'", "'\\''") + "'"
+
+    private fun page(name: String) = Response(OK, PAGES.getValue(name), assets.open("web/$name").use { it.readBytes() })
 
     private fun act(action: () -> Unit): Response {
         action()
@@ -205,6 +212,15 @@ class RemoteService : Service() {
 
     companion object {
         const val PORT = 8888
+
+        // The files of the phone page in assets/web, and their types; nothing else is served.
+        private val PAGES = mapOf(
+            "index.html" to "text/html; charset=utf-8",
+            "manifest.webmanifest" to "application/manifest+json",
+            "icon-192.png" to "image/png",
+            "icon-512.png" to "image/png",
+            "apple-touch-icon.png" to "image/png",
+        )
 
         // What the phone remote may press, and nothing else.
         private val KEYS = mapOf(
