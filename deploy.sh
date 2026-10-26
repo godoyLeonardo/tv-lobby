@@ -26,8 +26,10 @@ SIGNING="${TV_LOBBY_SIGNING:-$HOME/.config/tv-lobby/signing.properties}"
 [[ -f "$SIGNING" ]] || { echo "No signing key at $SIGNING (see Signing in the README)." >&2; exit 1; }
 [[ -f local.properties ]] || echo "sdk.dir=${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}" > local.properties
 ./gradlew -q assembleRelease
-# Only a first setup jumps to Home; an update leaves the TV on whatever is being watched.
+# The update closes the lobby; reopen it only if it was on screen (or this is the first setup), so the TV stays on
+# whatever is being watched. Without this, a closed lobby falls back to the last app, often the TV's HDMI player.
 home_before=$(tv cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME | tail -1)
+on_screen=$(tv dumpsys window | grep -m1 mCurrentFocus)
 # Granted before an update too: the update broadcast that restarts the phone remote fires during the install.
 tv appops set "$PKG" AUTO_START allow 2>/dev/null || true
 adb -s "$TV" install -r app/build/outputs/apk/release/app-release.apk
@@ -36,5 +38,7 @@ tv pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS
 tv appops set "$PKG" AUTO_START allow
 for p in "${STOCK_HOMES[@]}"; do tv pm disable-user --user 0 "$p" >/dev/null; done
 tv cmd package set-home-activity "$PKG/.MainActivity"
-[[ "$home_before" == "$PKG/"* ]] || tv am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null
+if [[ "$home_before" != "$PKG/"* || "$on_screen" == *"$PKG/"* ]]; then
+  tv am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null
+fi
 echo "TV Lobby is the home screen."
