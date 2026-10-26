@@ -102,7 +102,7 @@ class MainActivity : Activity() {
     private fun layout(): View {
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(48), dp(24), dp(48), dp(16))
+            setPadding(dp(48), dp(20), dp(48), dp(8))
             clipChildren = false
             clipToPadding = false
             addView(header())
@@ -139,11 +139,10 @@ class MainActivity : Activity() {
         clipChildren = false
         clipToPadding = false
         addView(clock(), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        addView(Tile(context, 160, 48, Palette.SURFACE).apply {
+        addView(Tile(context, 172, 52, Palette.SURFACE, titleSp = 17f).apply {
             title.text = "Goodnight"
-            title.textSize = 15f
             detail.visibility = View.GONE
-            showMark(getDrawable(R.drawable.icon_bedtime)!!, 22)
+            showMark(getDrawable(R.drawable.icon_bedtime)!!, 24)
             setOnClickListener {
                 Menu(
                     this@MainActivity, "Turn everything off?", icon(R.drawable.icon_bedtime),
@@ -156,11 +155,10 @@ class MainActivity : Activity() {
                 ).show()
             }
         })
-        addView(Tile(context, 148, 48, Palette.SURFACE).apply {
+        addView(Tile(context, 160, 52, Palette.SURFACE, titleSp = 17f).apply {
             title.text = "Settings"
-            title.textSize = 15f
             detail.visibility = View.GONE
-            showMark(getDrawable(R.drawable.icon_settings)!!, 22)
+            showMark(getDrawable(R.drawable.icon_settings)!!, 24)
             setOnClickListener { launch(Intent(Settings.ACTION_SETTINGS)) }
             setOnLongClickListener {
                 HealthDialog(this@MainActivity, controls).show()
@@ -183,7 +181,7 @@ class MainActivity : Activity() {
         addView(TextClock(context).apply {
             format24Hour = "EEEE d MMMM"
             format12Hour = "EEEE d MMMM"
-            textSize = 18f
+            textSize = 20f
             typeface = Fonts.manrope(context, 500)
             setTextColor(Palette.MUTED)
             setPadding(dp(20), 0, 0, dp(10))
@@ -192,11 +190,11 @@ class MainActivity : Activity() {
 
     private fun sectionLabel(text: String) = TextView(this).apply {
         this.text = text.uppercase()
-        textSize = 13f
+        textSize = 14f
         typeface = Fonts.manrope(context, 700)
         letterSpacing = 0.14f
         setTextColor(Palette.MUTED)
-        setPadding(dp(8), dp(14), 0, 0)
+        setPadding(dp(8), dp(10), 0, 0)
     }
 
     private fun row() = LinearLayout(this).apply {
@@ -206,9 +204,9 @@ class MainActivity : Activity() {
         clipToPadding = false
     }
 
-    private fun inputTile(input: Input) = Tile(this, 256, 112, input.colors.last()).apply {
+    private fun inputTile(input: Input) = Tile(this, TILE_WIDTH, TILE_HEIGHT, input.colors.last(), titleSp = 22f, detailSp = 15f).apply {
         title.text = input.label
-        showMark(getDrawable(input.mark)!!, 44)
+        showMark(getDrawable(input.mark)!!, 48)
         fillWith(input.colors)
         setOnClickListener { open(input) }
         setOnLongClickListener {
@@ -249,22 +247,26 @@ class MainActivity : Activity() {
 
     private fun toast(text: String) = handler.post { Toast.makeText(this, text, Toast.LENGTH_LONG).show() }
 
-    private fun outputTile(output: AudioOutput) = Tile(this, 256, 80, output.accent).apply {
-        title.text = output.label
-        showMark(getDrawable(output.icon)!!, 30)
-        setOnClickListener { select(output) }
-        if (output.wiimHost != null) {
-            setOnLongClickListener {
-                showWiimMenu(output)
-                true
+    // The WiiM's tile spans two columns: it carries the song and album art while the WiiM plays its own source.
+    private fun outputTile(output: AudioOutput): Tile {
+        val width = if (output.wiimHost != null) TILE_WIDTH * 2 + TILE_GAP else TILE_WIDTH
+        return Tile(this, width, TILE_HEIGHT, output.accent, titleSp = 22f, detailSp = 15f).apply {
+            title.text = output.label
+            showMark(getDrawable(output.icon)!!, 36)
+            setOnClickListener { select(output) }
+            if (output.wiimHost != null) {
+                setOnLongClickListener {
+                    showWiimMenu(output)
+                    true
+                }
             }
+            outputTiles[output] = this
         }
-        outputTiles[output] = this
     }
 
     private fun appTile(app: ResolveInfo): Tile {
         val activity = app.activityInfo
-        return Tile(this, 160, 90, Palette.SURFACE).apply {
+        return Tile(this, 192, 108, Palette.SURFACE).apply {
             val banner = activity.loadBanner(packageManager)
             if (banner != null) showImage(banner) else showIcon(activity.loadIcon(packageManager), app.loadLabel(packageManager))
             contentDescription = app.loadLabel(packageManager)
@@ -294,7 +296,7 @@ class MainActivity : Activity() {
         Menu(this, app.loadLabel(packageManager), app.activityInfo.loadIcon(packageManager), listOf(MenuRow(null, options))).show()
     }
 
-    private fun hiddenAppsTile(hidden: List<ResolveInfo>) = Tile(this, 160, 90, Palette.SURFACE).apply {
+    private fun hiddenAppsTile(hidden: List<ResolveInfo>) = Tile(this, 192, 108, Palette.SURFACE).apply {
         showIcon(icon(R.drawable.icon_visibility_off), "Hidden apps (${hidden.size})")
         setOnClickListener {
             Menu(
@@ -370,7 +372,12 @@ class MainActivity : Activity() {
                 streamer?.ownSource == true -> tile.showStatus("Paused · $byline", null)
                 else -> tile.showStatus(output.detail, null)
             }
-            if (output.wiimHost != null) tile.showBackdrop(wiimArt?.takeIf { track?.artUrl == it.first }?.let { BitmapDrawable(resources, it.second) })
+            if (output.wiimHost != null) {
+                val art = wiimArt?.takeIf { track?.artUrl == it.first }?.second
+                // Two drawables: one Drawable can't sit in two views.
+                tile.showBackdrop(art?.let { BitmapDrawable(resources, it) })
+                if (art != null) tile.showMark(BitmapDrawable(resources, art), 76) else tile.showMark(icon(output.icon), 36)
+            }
         }
     }
 
@@ -487,6 +494,11 @@ class MainActivity : Activity() {
 
     private companion object {
         const val LAST_USED = "last_used_tile"
+
+        // Three columns across the 960 dp-wide TV screen (48 dp side margins).
+        const val TILE_WIDTH = 270
+        const val TILE_HEIGHT = 100
+        const val TILE_GAP = 18
         const val HIDDEN_APPS = "hidden_apps"
 
         // HdmiControlManager.POWER_STATUS_* (system API, so not visible to apps).

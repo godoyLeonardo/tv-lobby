@@ -31,12 +31,12 @@ class HealthDialog(context: Context, private val controls: Controls) :
             setPadding(context.dp(32), context.dp(24), context.dp(32), context.dp(20))
             addView(TextView(context).apply {
                 text = "Lobby status"
-                textSize = 22f
+                textSize = 24f
                 typeface = Fonts.manrope(context, 700)
                 setTextColor(Palette.TEXT)
                 setPadding(0, 0, 0, context.dp(8))
             })
-            addView(list, LinearLayout.LayoutParams(context.dp(640), LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(list, LinearLayout.LayoutParams(context.dp(700), LinearLayout.LayoutParams.WRAP_CONTENT))
         })
         window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window?.setDimAmount(0.6f)
@@ -64,7 +64,7 @@ class HealthDialog(context: Context, private val controls: Controls) :
         }
         val detail = TextView(context).apply {
             text = "Checking…"
-            textSize = 14f
+            textSize = 15f
             typeface = Fonts.manrope(context, 500)
             setTextColor(Palette.MUTED)
         }
@@ -77,7 +77,7 @@ class HealthDialog(context: Context, private val controls: Controls) :
                 orientation = LinearLayout.VERTICAL
                 addView(TextView(context).apply {
                     text = name
-                    textSize = 17f
+                    textSize = 18f
                     typeface = Fonts.manrope(context, 700)
                     setTextColor(Palette.TEXT)
                 })

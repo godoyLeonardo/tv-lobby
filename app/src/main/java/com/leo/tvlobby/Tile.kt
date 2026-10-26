@@ -2,9 +2,12 @@ package com.leo.tvlobby
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
+import android.os.Build
 import android.text.SpannableStringBuilder
 import android.text.TextUtils
 import android.text.style.ForegroundColorSpan
@@ -34,16 +37,23 @@ fun blend(from: Int, to: Int, ratio: Float): Int {
     return Color.rgb(mix(Color.red(from), Color.red(to)), mix(Color.green(from), Color.green(to)), mix(Color.blue(from), Color.blue(to)))
 }
 
-class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : FrameLayout(context) {
+class Tile(
+    context: Context,
+    widthDp: Int,
+    heightDp: Int,
+    val accent: Int,
+    titleSp: Float = 19f,
+    detailSp: Float = 13f,
+) : FrameLayout(context) {
     val title = TextView(context).apply {
-        textSize = 19f
+        textSize = titleSp
         setTextColor(Palette.TEXT)
         typeface = Fonts.manrope(context, 700)
         maxLines = 1
         ellipsize = TextUtils.TruncateAt.END
     }
     val detail = TextView(context).apply {
-        textSize = 13f
+        textSize = detailSp
         typeface = Fonts.manrope(context, 500)
         maxLines = 1
         ellipsize = TextUtils.TruncateAt.END
@@ -111,7 +121,8 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : Fra
         }
         val view = backdrop ?: ImageView(context).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
-            foreground = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(0xE6000000.toInt(), 0x80000000.toInt()))
+            foreground = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(0xCC000000.toInt(), 0x66000000))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setRenderEffect(RenderEffect.createBlurEffect(40f, 40f, Shader.TileMode.CLAMP))
         }.also {
             addView(it, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
             backdrop = it
@@ -119,18 +130,22 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : Fra
         view.setImageDrawable(image)
     }
 
+    // The logo or picture at the tile's start; calling it again swaps it and can change its size (album art vs icon).
     fun showMark(mark: Drawable, sizeDp: Int) {
-        markView?.let { return it.setImageDrawable(mark) }
         text.setPadding(context.dp(36 + sizeDp), 0, context.dp(16), 0)
-        markView = ImageView(context).apply {
-            setImageDrawable(mark)
+        val view = markView ?: ImageView(context).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             clipToOutline = true
-            background = GradientDrawable().apply { cornerRadius = context.dp(8).toFloat() }
+            background = GradientDrawable().apply { cornerRadius = context.dp(10).toFloat() }
+        }.also {
+            addView(it, LayoutParams(0, 0, Gravity.CENTER_VERTICAL or Gravity.START).apply { marginStart = context.dp(22) })
+            markView = it
         }
-        addView(markView, LayoutParams(context.dp(sizeDp), context.dp(sizeDp), Gravity.CENTER_VERTICAL or Gravity.START).apply {
-            marginStart = context.dp(22)
-        })
+        view.layoutParams = (view.layoutParams as LayoutParams).apply {
+            width = context.dp(sizeDp)
+            height = context.dp(sizeDp)
+        }
+        view.setImageDrawable(mark)
     }
 
     fun fillWith(colors: IntArray) {
@@ -140,7 +155,7 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : Fra
 
     fun showIcon(icon: Drawable, label: CharSequence) {
         title.text = label
-        title.textSize = 15f
+        title.textSize = 16f
         detail.visibility = GONE
         text.gravity = Gravity.BOTTOM
         text.setPadding(context.dp(16), 0, context.dp(16), context.dp(12))

@@ -35,7 +35,7 @@ class Menu(context: Context, title: CharSequence, icon: Drawable, rows: List<Men
             addView(ImageView(context).apply { setImageDrawable(icon) }, LinearLayout.LayoutParams(context.dp(32), context.dp(32)))
             addView(TextView(context).apply {
                 text = title
-                textSize = 22f
+                textSize = 24f
                 typeface = Fonts.manrope(context, 700)
                 setTextColor(Palette.TEXT)
                 setPadding(context.dp(14), 0, 0, 0)
@@ -77,17 +77,17 @@ class Menu(context: Context, title: CharSequence, icon: Drawable, rows: List<Men
 
     private fun rowLabel(text: String) = TextView(context).apply {
         this.text = text.uppercase()
-        textSize = 12f
+        textSize = 13f
         typeface = Fonts.manrope(context, 700)
         letterSpacing = 0.14f
         setTextColor(Palette.MUTED)
         setPadding(context.dp(8), context.dp(8), 0, 0)
     }
 
-    private fun tile(option: MenuOption) = Tile(context, 200, 72, option.accent).apply {
+    private fun tile(option: MenuOption) = Tile(context, 224, 80, option.accent, titleSp = 20f).apply {
         title.text = option.label
         detail.visibility = View.GONE
-        showMark(option.icon, 26)
+        showMark(option.icon, 28)
         option.colors?.let(::fillWith)
         active = option.active
         setOnClickListener {
