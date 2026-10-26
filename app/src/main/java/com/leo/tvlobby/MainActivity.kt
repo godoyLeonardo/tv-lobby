@@ -131,6 +131,23 @@ class MainActivity : Activity() {
         clipChildren = false
         clipToPadding = false
         addView(clock(), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        addView(Tile(context, 160, 48, Palette.SURFACE).apply {
+            title.text = "Goodnight"
+            title.textSize = 15f
+            detail.visibility = View.GONE
+            showMark(getDrawable(R.drawable.icon_bedtime)!!, 22)
+            setOnClickListener {
+                Menu(
+                    this@MainActivity, "Turn everything off?", R.drawable.icon_bedtime,
+                    listOf(
+                        MenuOption("Cancel", R.drawable.icon_close, Palette.SURFACE) {},
+                        MenuOption("Goodnight", R.drawable.icon_power, Menu.DANGER) {
+                            localAdb.goodnight(onError = { toast("Couldn't turn things off: allow TV Lobby's debugging prompt") })
+                        },
+                    ),
+                ).show()
+            }
+        })
         addView(Tile(context, 148, 48, Palette.SURFACE).apply {
             title.text = "Settings"
             title.textSize = 15f

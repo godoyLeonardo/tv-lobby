@@ -29,12 +29,18 @@ class LocalAdb(private val context: Context) {
     fun wakeHdmiDevice(port: Int, onError: (Throwable) -> Unit, onAbsent: () -> Unit = {}) =
         onCecDevice(port, "cmd hdmi_control deviceselect \$la", onError, onAbsent)
 
-    fun standbyHdmiDevice(port: Int, onError: (Throwable) -> Unit, onAbsent: () -> Unit) = onCecDevice(
-        port,
-        "CLASSPATH=\$(pm path ${context.packageName} | sed 's/package://') app_process /system/bin ${CecTool::class.java.name} standby \$la",
+    fun standbyHdmiDevice(port: Int, onError: (Throwable) -> Unit, onAbsent: () -> Unit) =
+        onCecDevice(port, "$cecTool standby \$la", onError, onAbsent)
+
+    // Puts every CEC device to sleep, then the TV.
+    fun goodnight(onError: (Throwable) -> Unit) = run(
+        "las=\$(dumpsys hdmi_control 2>/dev/null | grep -E 'CEC: logical_address: .*port_id: [1-9][0-9]*\$' | sort -u" +
+            " | sed -E 's/.*logical_address: 0x([0-9a-f]+).*/\\1/' | while read la; do echo \$((16#\$la)); done); " +
+            "[ -n \"\$las\" ] && $cecTool standby \$las; input keyevent KEYCODE_SLEEP",
         onError,
-        onAbsent,
     )
+
+    private val cecTool get() = "CLASSPATH=\$(pm path ${context.packageName} | sed 's/package://') app_process /system/bin ${CecTool::class.java.name}"
 
     // CEC power status of each device in the TV's CEC list, keyed by HDMI port; a device asleep without CEC is absent.
     fun cecPowerByPort(onResult: (Map<Int, Int>) -> Unit) = run(

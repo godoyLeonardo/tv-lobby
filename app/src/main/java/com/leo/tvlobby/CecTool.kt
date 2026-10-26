@@ -17,8 +17,8 @@ object CecTool {
     @JvmStatic
     fun main(args: Array<String>) {
         when (args.firstOrNull()) {
-            "standby" -> standby(args[1].toInt())
-            else -> error("usage: standby <logical address>")
+            "standby" -> args.drop(1).forEach { standby(it.toInt()) }
+            else -> error("usage: standby <logical address>...")
         }
     }
 
