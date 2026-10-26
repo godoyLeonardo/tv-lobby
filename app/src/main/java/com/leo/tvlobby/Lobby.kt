@@ -10,7 +10,15 @@ data class Input(
     val wakeHint: String = "Wake it from its own remote or controller.",
 )
 
-data class AudioOutput(val label: String, val detail: String, val icon: Int, val tclType: Int, val accent: Int)
+data class AudioOutput(
+    val label: String,
+    val detail: String,
+    val icon: Int,
+    val tclType: Int,
+    val accent: Int,
+    // LAN address of a WiiM streamer behind this output (give it a fixed address in the router).
+    val wiimHost: String? = null,
+)
 
 object Lobby {
     // TvInputService ids of this TCL's HDMI ports (`adb shell dumpsys tv_input`): HW15 is HDMI 1, HW18 is HDMI 4.
@@ -26,7 +34,7 @@ object Lobby {
 
     val outputs = listOf(
         AudioOutput("TV speakers", "Internal", R.drawable.icon_tv, 2, 0xFFF5A623.toInt()),
-        AudioOutput("WiiM Ultra", "HDMI eARC", R.drawable.icon_speaker, 16, 0xFF2EC4B6.toInt()),
+        AudioOutput("WiiM Ultra", "HDMI eARC", R.drawable.icon_speaker, 16, 0xFF2EC4B6.toInt(), wiimHost = "192.168.1.21"),
     )
 
     // Defaults only: long-press an app in the lobby to pin, move or hide it, which is saved on the TV.

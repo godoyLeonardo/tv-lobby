@@ -32,11 +32,13 @@ class MainActivity : Activity() {
     private lateinit var appsRow: LinearLayout
     private var shownApps = emptyList<String>()
     private var cecPower = emptyMap<Int, Int>()
+    private val wiim = Lobby.outputs.firstNotNullOfOrNull { it.wiimHost }?.let(::WiiM)
+    private var wiimStatus: WiiM.Status? = null
     private val prefs by lazy { getSharedPreferences("lobby", MODE_PRIVATE) }
     private val appPrefs by lazy { AppPrefs(this) }
     private val tilesByKey = mutableMapOf<String, Tile>()
     private var focusLastUsed = true
-    private val refreshCecPower = Runnable { refreshCecPower() }
+    private val refreshDevices = Runnable { refreshDevices() }
 
     private val outputObserver = object : ContentObserver(handler) {
         override fun onChange(selfChange: Boolean) = renderOutput()
@@ -58,7 +60,7 @@ class MainActivity : Activity() {
         super.onResume()
         aurora.resume()
         renderInputs()
-        refreshCecPower()
+        refreshDevices()
         renderOutput()
         renderApps()
         if (focusLastUsed) {
@@ -69,7 +71,7 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         aurora.pause()
-        handler.removeCallbacks(refreshCecPower)
+        handler.removeCallbacks(refreshDevices)
         super.onPause()
     }
 
@@ -234,7 +236,7 @@ class MainActivity : Activity() {
             onError = { toast("Couldn't turn off ${input.label}: allow TV Lobby's debugging prompt") },
             onAbsent = { toast("${input.label} isn't on HDMI-CEC, so the TV can't turn it off") },
         )
-        refreshCecPowerIn(3_000)
+        refreshDevicesIn(3_000)
     }
 
     private fun toast(text: String) = handler.post { Toast.makeText(this, text, Toast.LENGTH_LONG).show() }
@@ -310,26 +312,38 @@ class MainActivity : Activity() {
 
     // The HDMI signal state says "on" for a device that is asleep but keeps its output alive (Apple TV),
     // so devices on CEC show their CEC power status instead; the TV's CEC service re-polls it about every minute.
-    private fun refreshCecPower() {
+    private fun refreshDevices() {
         localAdb.cecPowerByPort { power ->
             handler.post {
                 cecPower = power
                 renderInputs()
             }
         }
-        refreshCecPowerIn(20_000)
+        wiim?.status { status ->
+            handler.post {
+                wiimStatus = status
+                renderOutput()
+            }
+        }
+        refreshDevicesIn(20_000)
     }
 
-    private fun refreshCecPowerIn(delayMillis: Long) {
-        handler.removeCallbacks(refreshCecPower)
-        handler.postDelayed(refreshCecPower, delayMillis)
+    private fun refreshDevicesIn(delayMillis: Long) {
+        handler.removeCallbacks(refreshDevices)
+        handler.postDelayed(refreshDevices, delayMillis)
     }
 
     private fun renderOutput() {
         val current = Settings.Global.getInt(contentResolver, Lobby.OUTPUT_SETTING, 1)
         outputTiles.forEach { (output, tile) ->
             tile.active = output.tclType == current
-            if (tile.active) tile.showStatus("Playing", Palette.ON) else tile.showStatus(output.detail, null)
+            val streamer = wiimStatus?.takeIf { output.wiimHost != null }
+            when {
+                streamer != null && tile.active && !streamer.onTv -> tile.showStatus("On ${streamer.source}: select for TV sound", Palette.STANDBY)
+                tile.active -> tile.showStatus(listOfNotNull("Playing", streamer?.let { if (it.muted) "Muted" else "Vol ${it.volume}" }).joinToString(" · "), Palette.ON)
+                streamer != null && streamer.playing && !streamer.onTv -> tile.showStatus("${streamer.source}: ${streamer.nowPlaying}", null)
+                else -> tile.showStatus(output.detail, null)
+            }
         }
     }
 
@@ -360,6 +374,7 @@ class MainActivity : Activity() {
             Toast.makeText(this, "Missing WRITE_SECURE_SETTINGS: run ./deploy.sh", Toast.LENGTH_LONG).show()
         }
         renderOutput()
+        if (output.wiimHost != null) wiim?.useTvSound { handler.post { refreshDevicesIn(1_000) } }
     }
 
     private fun launch(intent: Intent) {

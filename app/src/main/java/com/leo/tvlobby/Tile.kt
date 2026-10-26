@@ -46,6 +46,7 @@ class Tile(context: Context, widthDp: Int, heightDp: Int, val accent: Int) : Fra
         textSize = 13f
         typeface = Fonts.manrope(context, 500)
         maxLines = 1
+        ellipsize = TextUtils.TruncateAt.END
     }
 
     private val fill = GradientDrawable().apply {
