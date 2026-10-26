@@ -365,7 +365,9 @@
   }
   $("tab-lobby").onclick = () => showTab("lobby");
   $("tab-remote").onclick = () => showTab("remote");
-  try { if (localStorage.getItem("tab") === "remote") showTab("remote"); } catch {}
+  // #remote opens straight on the remote (a bookmark or home-screen shortcut); otherwise the last tab used.
+  if (location.hash === "#remote") showTab("remote");
+  else try { if (localStorage.getItem("tab") === "remote") showTab("remote"); } catch {}
 
   refresh();
   setInterval(refresh, 5000);
