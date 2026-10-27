@@ -89,7 +89,7 @@ class RemoteService : Service() {
         return when {
             method == "POST" && parts.size == 3 && parts[1] == "key" -> {
                 val key = KEYS[parts[2]] ?: return Response("404 Not Found", JSON, "{}")
-                act { keys.run("input keyevent $key", onError = {}) }
+                act { if (VolumeKeyService.instance?.press(parts[2]) != true) keys.run("input keyevent $key", onError = {}) }
             }
             method == "POST" && path == "/api/text" -> act { keys.run("input text ${shellText(query["value"].orEmpty())}", onError = {}) }
             method == "GET" && path == "/" -> page("index.html")
