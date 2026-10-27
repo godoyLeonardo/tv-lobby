@@ -101,6 +101,8 @@
   .keyboard[hidden] { display: none; }
   .keyboard input { flex: 1; min-width: 0; border: 0; border-radius: 14px; padding: 14px; background: var(--surface); color: var(--text); font: inherit; }
   .keyboard button { min-height: 0; padding: 0 14px; border-radius: 14px; text-align: center; }
+  .tick { position: absolute; inset: 0; z-index: 1; border-radius: inherit; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+  .tick input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; visibility: hidden; }
 </style>
 </head>
 <body>
@@ -174,20 +176,29 @@
 
   let state = null;
 
-  // Android has the Vibration API. iPhone Safari doesn't, but clicking the label of a switch-style checkbox plays the
-  // system tick (iOS 18 and later); elsewhere the label click does nothing.
+  // Android has the Vibration API. iPhone Safari doesn't, and since iOS 26.5 it only ticks when a real tap toggles a
+  // switch, so every button carries an invisible label over a hidden switch: the tap lands on the label, the label
+  // toggles the switch, and the tap's click still reaches the button's own handlers.
   function haptic() {
-    if (navigator.vibrate) return navigator.vibrate(10);
-    const input = el("input", { type: "checkbox" });
-    input.setAttribute("switch", "");
-    const label = el("label", { ariaHidden: "true" }, [input]);
-    label.style.display = "none";
-    document.head.append(label);
-    label.click();
-    label.remove();
+    navigator.vibrate?.(10);
   }
 
-  // Every button ticks on tap; the hold-to-repeat keys tick on each press instead, as they send.
+  function addTick(button) {
+    // A tap on a label inside the submit button would toggle the label's switch instead of sending the form.
+    if (navigator.vibrate || (button.form && button.type === "submit") || button.querySelector(":scope > .tick")) return;
+    const input = el("input", { type: "checkbox", tabIndex: -1 });
+    input.setAttribute("switch", "");
+    // The label's forwarded click on the switch would reach the button a second time.
+    input.addEventListener("click", (event) => event.stopPropagation());
+    button.append(el("label", { className: "tick", ariaHidden: "true" }, [input]));
+  }
+
+  // Buttons are also built later (the lobby's cards, the sheets), so new ones get their tick as they appear.
+  new MutationObserver(() => document.querySelectorAll("button").forEach(addTick))
+    .observe(document.body, { childList: true, subtree: true });
+  document.querySelectorAll("button").forEach(addTick);
+
+  // On Android every button ticks on tap; the hold-to-repeat keys tick on each press instead, as they send.
   document.addEventListener("click", (event) => {
     const button = event.target.closest("button");
     if (button && !button.matches("[data-repeat]")) haptic();

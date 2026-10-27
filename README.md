@@ -29,7 +29,7 @@ Open `http://<TV address>:8888` on a phone on the same network. It works while t
 - **Lobby tab:** inputs, sound, Lobby, Goodnight and Status. Hold a card marked ••• for the TV's menus (Open / Turn off, the WiiM menu).
 - **Remote tab:** power, a click-pad, back, home, play/pause, mute, volume (hold to repeat) and a keyboard that types into the TV's focused text field. The keys go through the TV, so they reach an HDMI device over CEC like the TV's own remote. `#remote` opens the page on this tab.
 - **Add to Home Screen** gives it an icon and a full-screen window on iPhone.
-- Buttons tick under your finger: with the Vibration API on Android, with the system haptic on iPhone (iOS 18 and later).
+- Buttons tick under your finger: with the Vibration API on Android, and on iPhone with the system tick of a hidden switch under each button (iOS plays it only for a real tap, so holding a key ticks once).
 
 ## Setup
 
@@ -76,8 +76,8 @@ Edit [`Lobby.kt`](app/src/main/java/com/leo/tvlobby/Lobby.kt):
 - **Turn off:** CEC `<Standby>` through `IHdmiControlService.sendStandby`. TCL wraps `hdmi_control` in its own binder interface, so `service call` stamps the wrong token; the app instead runs its own `CecTool` class as the shell user with `app_process`, and reads the transaction number from the framework at each call.
 - **WiiM:** LinkPlay's HTTP API (`getPlayerStatus`, `getMetaInfo`, `setPlayerCmd:…`; `plm_support` in `getStatusEx` lists the inputs; `StartRebootTime:1` restarts it, since the documented `reboot` is unknown to its firmware). The WiiM serves LinkPlay's self-signed certificate, so the app pins that exact certificate and talks only to the configured address.
 - **Spotify Connect:** the WiiM's ZeroConf endpoint on port 5356 (`getInfo` for the status, `resetUsers` for the reset). It is plain HTTP, so the build generates a network security rule that allows plain HTTP for the WiiM's address only.
-- **Volume keys:** `VolumeKeyService`, an accessibility service that only filters key events (no window content). It polls the WiiM every 4 s and takes the volume keys while the WiiM isn't on TV sound.
-- **Phone remote:** `RemoteService`, a foreground service with a minimal HTTP server for the page in `assets/web` and a small JSON API. Keys go through `input keyevent` / `input text`, limited to a fixed list.
+- **Volume keys:** `VolumeKeyService`, an accessibility service that only filters key events (no window content). It polls the WiiM every 4 s and takes the volume keys while the WiiM isn't on TV sound. It also presses the phone remote's D-pad, back and home (accessibility global actions) and volume keys (the WiiM, or `AudioManager`, which sends them over CEC on eARC), so quick taps aren't queued behind shell commands.
+- **Phone remote:** `RemoteService`, a foreground service with a minimal HTTP server for the page in `assets/web` and a small JSON API. Keys the accessibility service doesn't press (power, play/pause, the keyboard) go through `input keyevent` / `input text`, limited to a fixed list.
 
 ## Known limits
 
