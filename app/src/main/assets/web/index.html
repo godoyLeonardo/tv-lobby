@@ -174,6 +174,25 @@
 
   let state = null;
 
+  // Android has the Vibration API. iPhone Safari doesn't, but clicking the label of a switch-style checkbox plays the
+  // system tick (iOS 18 and later); elsewhere the label click does nothing.
+  function haptic() {
+    if (navigator.vibrate) return navigator.vibrate(10);
+    const input = el("input", { type: "checkbox" });
+    input.setAttribute("switch", "");
+    const label = el("label", { ariaHidden: "true" }, [input]);
+    label.style.display = "none";
+    document.head.append(label);
+    label.click();
+    label.remove();
+  }
+
+  // Every button ticks on tap; the hold-to-repeat keys tick on each press instead, as they send.
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (button && !button.matches("[data-repeat]")) haptic();
+  });
+
   async function post(path) {
     status.textContent = "Sending…";
     try {
@@ -194,13 +213,18 @@
       held = false;
       timer = setTimeout(() => {
         held = true;
-        navigator.vibrate?.(12);
+        haptic();
         onHold();
       }, 500);
     });
     for (const type of ["pointerup", "pointerleave", "pointercancel"]) button.addEventListener(type, () => clearTimeout(timer));
     button.addEventListener("contextmenu", (event) => event.preventDefault());
-    button.addEventListener("click", () => held ? (held = false) : onTap());
+    // After a hold the release's click is dropped, and kept from the page so it doesn't tick a second time.
+    button.addEventListener("click", (event) => {
+      if (!held) return onTap();
+      held = false;
+      event.stopPropagation();
+    });
     button.append(el("span", { className: "more", textContent: "•••", ariaHidden: "true" }));
   }
 
@@ -321,7 +345,6 @@
 
   // Remote: a press sends once; holding an arrow or the volume keeps sending, like a real remote.
   function sendKey(key) {
-    navigator.vibrate?.(5);
     fetch(`/api/key/${key}`, { method: "POST" }).catch(() => (status.textContent = "TV not reachable"));
   }
 
@@ -336,8 +359,9 @@
     const stop = () => { clearTimeout(delay); clearInterval(interval); };
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
+      haptic();
       sendKey(key);
-      delay = setTimeout(() => (interval = setInterval(() => sendKey(key), 120)), 400);
+      delay = setTimeout(() => (interval = setInterval(() => { haptic(); sendKey(key); }, 120)), 400);
     });
     for (const type of ["pointerup", "pointerleave", "pointercancel"]) button.addEventListener(type, stop);
     button.addEventListener("contextmenu", (event) => event.preventDefault());

@@ -29,6 +29,7 @@ Open `http://<TV address>:8888` on a phone on the same network. It works while t
 - **Lobby tab:** inputs, sound, Lobby, Goodnight and Status. Hold a card marked ••• for the TV's menus (Open / Turn off, the WiiM menu).
 - **Remote tab:** power, a click-pad, back, home, play/pause, mute, volume (hold to repeat) and a keyboard that types into the TV's focused text field. The keys go through the TV, so they reach an HDMI device over CEC like the TV's own remote. `#remote` opens the page on this tab.
 - **Add to Home Screen** gives it an icon and a full-screen window on iPhone.
+- Buttons tick under your finger: with the Vibration API on Android, with the system haptic on iPhone (iOS 18 and later).
 
 ## Setup
 
@@ -85,6 +86,7 @@ Edit [`Lobby.kt`](app/src/main/java/com/leo/tvlobby/Lobby.kt):
 - **Boot:** TCL's app-boot manager drops the boot broadcast for apps outside its own allowlist. The phone remote and the repairs start when the lobby opens as Home.
 - **Android install:** Chrome only installs pages served over HTTPS, so on Android the page opens with the browser bar.
 - **No login:** anyone on the home network can use the phone remote.
+- **Phone volume buttons:** neither iOS Safari nor Chrome on Android passes them to a web page, so the page can't use them; the on-screen volume keys do the same job.
 - **`input text`** types ASCII only.
 
 ## Credits
