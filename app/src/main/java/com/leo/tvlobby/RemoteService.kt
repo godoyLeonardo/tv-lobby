@@ -32,11 +32,16 @@ class RemoteService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForeground(1, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         thread(name = "remote") { serve() }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY
+    // Every startForegroundService() needs its own startForeground(), even while the service runs: when deploy.sh
+    // starts it with the TV on another app, TCL's app-boot manager drops that call, and the lobby's next start
+    // (the service already running) then had no answer, so Android killed the app 30 s later.
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        startForeground(1, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        return START_STICKY
+    }
 
     override fun onDestroy() {
         server?.close()
