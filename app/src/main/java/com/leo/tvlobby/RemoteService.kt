@@ -108,7 +108,7 @@ class RemoteService : Service() {
             method == "POST" && parts.size == 4 && parts[1] == "wiim" -> wiimAction(parts[2], parts[3])
             method == "POST" && parts.size == 3 && parts[1] == "wiim" -> wiimAction(parts[2], null)
             method == "POST" && parts.size == 3 && parts[1] == "output" -> act { controls.selectOutput(Lobby.outputs.first { it.tclType == parts[2].toInt() }) }
-            method == "POST" && path == "/api/lobby" -> act { controls.localAdb.run("am start -a ${Intent.ACTION_MAIN} -c ${Intent.CATEGORY_HOME}", onError = {}) }
+            method == "POST" && path == "/api/lobby" -> act { controls.localAdb.run(awake("am start -a ${Intent.ACTION_MAIN} -c ${Intent.CATEGORY_HOME}"), onError = {}) }
             method == "POST" && path == "/api/goodnight" -> act { controls.goodnight(onError = {}) }
             else -> Response("404 Not Found", JSON, "{}")
         }
@@ -164,9 +164,13 @@ class RemoteService : Service() {
         return Response(OK, JSON, JSONObject().put("ok", true).toString())
     }
 
+    // An activity started during the screensaver opens behind it; a wake key ends the screensaver first, as a
+    // remote press would, and does nothing while the TV is already awake.
+    private fun awake(command: String) = "input keyevent KEYCODE_WAKEUP; $command"
+
     private fun openInput(input: Input) {
         val intent = controls.passthroughIntent(input)
-        controls.localAdb.run("am start -a ${intent.action} -d '${intent.data}' -t '${intent.type}'", onError = {})
+        controls.localAdb.run(awake("am start -a ${intent.action} -d '${intent.data}' -t '${intent.type}'"), onError = {})
         controls.localAdb.wakeHdmiDevice(input.hdmiPort, onError = {})
     }
 
