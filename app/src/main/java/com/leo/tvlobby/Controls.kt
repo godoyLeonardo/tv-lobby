@@ -8,7 +8,7 @@ import android.provider.Settings
 // What the lobby and the phone remote both do to the TV, the HDMI devices and the WiiM.
 class Controls(private val context: Context) {
     val localAdb = LocalAdb(context)
-    val wiim = Lobby.outputs.firstNotNullOfOrNull { it.wiimHost }?.let(::WiiM)
+    val wiim = Lobby.outputs.firstNotNullOfOrNull { it.wiimHost }?.let { WiiM(it, context.getSharedPreferences("lobby", Context.MODE_PRIVATE)) }
 
     val currentOutput get() = Settings.Global.getInt(context.contentResolver, Lobby.OUTPUT_SETTING, 1)
 

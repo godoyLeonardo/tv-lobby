@@ -425,50 +425,60 @@ class MainActivity : Activity() {
 
     private fun showWiimMenu(output: AudioOutput) {
         val wiim = wiim ?: return
-        wiim.inputs { inputs ->
-            handler.post {
-                val status = wiimStatus
-                val muted = status?.muted == true
-                val playing = status?.playing == true
-                val rows = listOfNotNull(
-                    MenuRow(
-                        "Now playing",
-                        listOf(
-                            MenuOption("Previous", icon(R.drawable.icon_skip_previous), output.accent) { wiim.previous(::afterWiimCommand) },
-                            MenuOption(if (playing) "Pause" else "Play", icon(if (playing) R.drawable.icon_pause else R.drawable.icon_play_arrow), output.accent) {
-                                wiim.togglePlayback(::afterWiimCommand)
+        // A fresh status, so the menu matches what the WiiM does now, not the last 20 s poll (which fails while the TV wakes).
+        wiim.status { fresh, track ->
+            wiim.inputs { inputs ->
+                handler.post {
+                    if (fresh != null) {
+                        wiimStatus = fresh
+                        wiimTrack = track
+                        renderOutput()
+                    } else {
+                        toast("The WiiM isn't answering yet")
+                    }
+                    val status = wiimStatus
+                    val muted = status?.muted == true
+                    val playing = status?.playing == true
+                    val rows = listOfNotNull(
+                        MenuRow(
+                            "Now playing",
+                            listOf(
+                                MenuOption("Previous", icon(R.drawable.icon_skip_previous), output.accent) { wiim.previous(::afterWiimCommand) },
+                                MenuOption(if (playing) "Pause" else "Play", icon(if (playing) R.drawable.icon_pause else R.drawable.icon_play_arrow), output.accent) {
+                                    wiim.togglePlayback(::afterWiimCommand)
+                                },
+                                MenuOption("Next", icon(R.drawable.icon_skip_next), output.accent) { wiim.next(::afterWiimCommand) },
+                            ),
+                        ).takeIf { status?.ownSource == true },
+                        MenuRow(
+                            "Input",
+                            inputs.map { input ->
+                                MenuOption(input.label, icon(input.icon), output.accent, active = status?.mode in input.modes) {
+                                    controls.useWiimInput(input, ::afterWiimCommand)
+                                    renderOutput()
+                                }
                             },
-                            MenuOption("Next", icon(R.drawable.icon_skip_next), output.accent) { wiim.next(::afterWiimCommand) },
+                        ).takeIf { inputs.isNotEmpty() },
+                        MenuRow(
+                            "Volume",
+                            Lobby.wiimVolumePresets.map { (label, volume) ->
+                                MenuOption("$label · $volume", icon(R.drawable.icon_volume_up), output.accent, active = status?.volume == volume) {
+                                    wiim.setVolume(volume, ::afterWiimCommand)
+                                }
+                            } + MenuOption(if (muted) "Unmute" else "Mute", icon(if (muted) R.drawable.icon_volume_up else R.drawable.icon_volume_off), output.accent) {
+                                wiim.setMuted(!muted, ::afterWiimCommand)
+                            },
                         ),
-                    ).takeIf { status?.ownSource == true },
-                    MenuRow(
-                        "Input",
-                        inputs.map { input ->
-                            MenuOption(input.label, icon(input.icon), output.accent, active = status?.mode in input.modes) {
-                                controls.useWiimInput(input, ::afterWiimCommand)
-                                renderOutput()
-                            }
-                        },
-                    ).takeIf { inputs.isNotEmpty() },
-                    MenuRow(
-                        "Volume",
-                        Lobby.wiimVolumePresets.map { (label, volume) ->
-                            MenuOption("$label · $volume", icon(R.drawable.icon_volume_up), output.accent, active = status?.volume == volume) {
-                                wiim.setVolume(volume, ::afterWiimCommand)
-                            }
-                        } + MenuOption(if (muted) "Unmute" else "Mute", icon(if (muted) R.drawable.icon_volume_up else R.drawable.icon_volume_off), output.accent) {
-                            wiim.setMuted(!muted, ::afterWiimCommand)
-                        },
-                    ),
-                    MenuRow(
-                        "Device",
-                        listOf(
-                            MenuOption("Reset Spotify", icon(R.drawable.icon_link_off), output.accent) { wiim.resetSpotifyConnect(::afterWiimCommand) },
-                            MenuOption("Restart WiiM", icon(R.drawable.icon_restart_alt), Menu.DANGER) { wiim.restart(::afterWiimCommand) },
+                        MenuRow(
+                            "Device",
+                            listOf(
+                                MenuOption("Reset Spotify", icon(R.drawable.icon_link_off), output.accent) { wiim.resetSpotifyConnect(::afterWiimCommand) },
+                                MenuOption("Restart WiiM", icon(R.drawable.icon_restart_alt), Menu.DANGER) { wiim.restart(::afterWiimCommand) },
+                            ),
                         ),
-                    ),
-                )
-                Menu(this, output.label, icon(output.icon), rows).show()
+                    )
+                    Menu(this, output.label, icon(output.icon), rows).show()
+                }
             }
         }
     }

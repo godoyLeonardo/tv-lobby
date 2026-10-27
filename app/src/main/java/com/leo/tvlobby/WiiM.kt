@@ -1,5 +1,6 @@
 package com.leo.tvlobby
 
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import org.json.JSONObject
@@ -14,7 +15,7 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
 // LinkPlay HTTP API of a WiiM streamer on the LAN.
-class WiiM(private val host: String) {
+class WiiM(private val host: String, private val prefs: SharedPreferences? = null) {
     class Status(
         val mode: Int,
         val vendor: String,
@@ -61,12 +62,15 @@ class WiiM(private val host: String) {
     @Volatile
     private var supported: List<Input>? = null
 
-    // The inputs this model has, from the plm_support bitmask, plus network streaming.
+    // The inputs this model has, from the plm_support bitmask, plus network streaming. The bitmask is remembered,
+    // so the menu still lists them when the WiiM is slow to answer (just after the TV wakes it).
     fun inputs(onResult: (List<Input>) -> Unit) = executor.execute {
-        val inputs = supported ?: runCatching {
-            val plm = JSONObject(call("getStatusEx")).optString("plm_support").removePrefix("0x").toLong(16)
-            INPUTS.filter { (bit, _) -> plm and bit != 0L }.map { it.second } + WIFI
-        }.getOrNull()?.also { supported = it }
+        val inputs = supported ?: run {
+            val plm = runCatching { JSONObject(call("getStatusEx")).getString("plm_support") }.getOrNull()
+                ?.also { prefs?.edit()?.putString(PLM_KEY, it)?.apply() }
+                ?: prefs?.getString(PLM_KEY, null)
+            plm?.removePrefix("0x")?.toLongOrNull(16)?.let { bits -> INPUTS.filter { (bit, _) -> bits and bit != 0L }.map { it.second } + WIFI }
+        }?.also { supported = it }
         onResult(inputs.orEmpty())
     }
 
@@ -152,6 +156,7 @@ class WiiM(private val host: String) {
 
     companion object {
         const val MODE_HDMI = 49
+        private const val PLM_KEY = "wiim_plm_support"
 
         // plm_support bits, from Home Assistant's LinkPlay library (InputMode), with the switchmode names it sends.
         private val INPUTS = listOf(
